@@ -1,0 +1,19 @@
+{
+  "name": "algobot3",
+  "version": "1.0.0",
+  "description": "Third iteration of my algorithmic trading bot.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ameobea/algobot3.git"
+  },
+  "author": "Casey Primozic <me@ameo.link> (Ameo)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Ameobea/algobot3/issues"
+  },
+  "homepage": "https://github.com/Ameobea/algobot3"
+}
