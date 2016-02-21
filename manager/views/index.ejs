@@ -3,32 +3,35 @@
   <title>Ameobot Management Console</title>
   <script type="text/javascript" src="http://code.jquery.com/jquery-1.10.1.js"></script>
   <script>
-    var server_address = "http://52.91.212.83:3000/"
-    $("#flush_database_button").click(function(){
-      $.get(server_address + "reset_db", function(data){
-        $("#command_output").html(data);
-      });
-    });
+  $(document).ready(function(){
+    var server_address = "http://<%= ip %>";
     $("#backtest_start_button").click(function(){
-      $.get(server_address + $("#backtest_type_selector option:selected").text() + "/" + $("#backtest_start_pair").val() + "/");
-    })
+      if($("#backtest_type_selector option:selected").text().toLowerCase() == "fast"){
+        var request_address = server_address + "api/backtest/start/fast/" + $("#backtest_start_pair").val();
+        $.post(request_address, {start_time: $("#backtest_start_time").val(), interval: $("#backtest_send_interval").val()});
+      }else{
+        var request_address = server_address + "api/backtest/start/live/" + $("#backtest_start_pair").val();
+        $.post(request_address, {start_time: $("#backtest_start_time").val()});
+      }
+    });
+    $("#backtest_stop_button").click(function(){
+      var request_address = server_address + "api/backtest/stop/" + $("#backtest_stop_pair").val();
+      $.post(request_address);
+    });
+  });
   </script>
 </head>
 <body>
   <h1>Bot Admin Functions</h1>
-  <table>
-  <tr>
-  <td><input type="button" value="Flush Database" id="flush_database_button"></td>
-  </tr>
-  </table>
   <h1>Backtests</h1>
   <h2>Start Backtest</h2>
   <b>Currency Pair:  </b><input type="text" placeholder="Currency Pair" id="backtest_start_pair">
-  <br><b>Type:  </b><select id="backtest_start_type_selector"><option value="fast">Fast</option><option value="live">Live</option></select>
+  <br><b>Type:  </b><select id="backtest_type_selector"><option value="fast">Fast</option><option value="live">Live</option></select>
   <br><b>Start Time:  </b><input type="text" placeholder="Start Time" id="backtest_start_time">
+  <br><b>Fast Send Interval:  </b><input type="text" placeholder="Fast Send Interval" id="backtest_send_interval">
   <br><input type="button" value="Start" id="backtest_start_button">
   <hr>
-  <h2>Start Backtests</h2>
+  <h2>Stop Backtests</h2>
   <b>Currency Pair:  </b><input type="text" placeholder="Currency Pair" id="backtest_stop_pair">
   <br><input type="button" value="Stop" id="backtest_stop_button">
   <h1>Command Output</h1>

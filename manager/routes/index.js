@@ -1,10 +1,10 @@
 var express = require("express");
 var router = express.Router();
-var conf = require("../../conf/conf")
+var conf = require("../../conf/conf");
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
-  res.render('index', {api_ip: conf.public.monitor_server_ip});
+  res.render('index', {ip: conf.public.manager_server_ip+":"+conf.public.manager_server_port+"/"});
 });
 
 module.exports = router;

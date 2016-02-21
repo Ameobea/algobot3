@@ -1,3 +1,4 @@
 var manager = require("./manager/manager");
+var conf = require("./conf/conf");
 
-manager.start(3002);
+manager.start(conf.public.manager_server_port);
