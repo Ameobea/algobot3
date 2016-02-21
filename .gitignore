@@ -31,3 +31,9 @@ node_modules
 
 # Optional REPL history
 .node_repl_history
+
+# Private Config
+conf/private.js
+
+# Tick data flatfile storage
+tick_data/*
