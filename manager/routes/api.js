@@ -16,8 +16,12 @@ router.post('/backtest/start/:type/:pair', function(req, res, next){
 //URL: [ip]/api/backtest/stop/[pair]
 //POST params: NONE
 router.post("/backtest/stop/:pair", function(req, res, next){
-  backtest.stop(req.params.pair);
-  //TODO: Return status code
+  if(req.params.pair != "all"){
+    backtest.stop(req.params.pair.toLowerCase());
+    //TODO: Return status code
+  }else{
+    backtest.clearFlags(function(){});
+  }
 });
 
 module.exports = router;

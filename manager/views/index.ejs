@@ -4,20 +4,24 @@
   <script type="text/javascript" src="http://code.jquery.com/jquery-1.10.1.js"></script>
   <script>
   $(document).ready(function(){
-    var server_address = "http://<%= ip %>";
-    $("#backtest_start_button").click(function(){
-      if($("#backtest_type_selector option:selected").text().toLowerCase() == "fast"){
-        var request_address = server_address + "api/backtest/start/fast/" + $("#backtest_start_pair").val();
-        $.post(request_address, {startTime: $("#backtest_startTime").val(), interval: $("#backtest_send_interval").val()});
+    var serverAddress = "http://<%= ip %>";
+    $("#backtestStartButton").click(function(){
+      if($("#backtestTypeSelector option:selected").text().toLowerCase() == "fast"){
+        var requestAddress = serverAddress + "api/backtest/start/fast/" + $("#backtestStartPair").val();
+        $.post(requestAddress, {startTime: $("#backtestStartTime").val(), interval: $("#backtestSendInterval").val()});
       }else{
-        var request_address = server_address + "api/backtest/start/live/" + $("#backtest_start_pair").val();
-        $.post(request_address, {startTime: $("#backtest_startTime").val()});
+        var requestAddress = serverAddress + "api/backtest/start/live/" + $("#backtestStartPair").val();
+        $.post(requestAddress, {startTime: $("#backtestStartTime").val()});
       }
     });
-    $("#backtest_stop_button").click(function(){
-      var request_address = server_address + "api/backtest/stop/" + $("#backtest_stop_pair").val();
-      $.post(request_address);
+    $("#backtestStopButton").click(function(){
+      var requestAddress = serverAddress + "api/backtest/stop/" + $("#backtestStopPair").val();
+      $.post(requestAddress);
     });
+    $("#backtestStopAllButton").click(function(){
+      var requestAddress = serverAddress + "api/backtest/stop/all";
+      $.post(requestAddress);
+    })
   });
   </script>
 </head>
@@ -25,16 +29,16 @@
   <h1>Bot Admin Functions</h1>
   <h1>Backtests</h1>
   <h2>Start Backtest</h2>
-  <b>Currency Pair:  </b><input type="text" value="usdcad" id="backtest_start_pair">
-  <br><b>Type:  </b><select id="backtest_type_selector"><option value="fast">Fast</option><option value="live">Live</option></select>
-  <br><b>Start Time:  </b><input type="text" value="1407099541.32" id="backtest_startTime">
-  <br><b>Fast Send Interval:  </b><input type="text" value="50" id="backtest_send_interval">
-  <br><input type="button" value="Start" id="backtest_start_button">
+  <b>Currency Pair:  </b><input type="text" value="usdcad" id="backtestStartPair">
+  <br><b>Type:  </b><select id="backtestTypeSelector"><option value="fast">Fast</option><option value="live">Live</option></select>
+  <br><b>Start Time:  </b><input type="text" value="1407099541.32" id="backtestStartTime">
+  <br><b>Fast Send Interval:  </b><input type="text" value="50" id="backtestSendInterval">
+  <br><input type="button" value="Start" id="backtestStartButton">
   <hr>
   <h2>Stop Backtests</h2>
-  <b>Currency Pair:  </b><input type="text" placeholder="Currency Pair" id="backtest_stop_pair">
-  <br><input type="button" value="Stop" id="backtest_stop_button">
+  <b>Currency Pair:  </b><input type="text" value="usdcad" id="backtestStopPair">
+  <br><input type="button" value="Stop" id="backtestStopButton">  <input type="button" value="Stop All" id="backtestStopAllButton">
   <h1>Command Output</h1>
-  <div id="command_output"></div>
+  <div id="commandOutput"></div>
 </body>
 </html>

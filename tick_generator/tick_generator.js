@@ -7,19 +7,25 @@ other modules that need them.
 */
 
 var redis = require("redis");
+var mongodb = require("mongodb");
+var conf = require("../conf/conf");
+var dbUtil = require("../db_utils/utils");
 
-var tick_generator = exports;
+var tickGenerator = exports;
 
-tick_generator.listen = function(){
-  var client = redis.client();
+tickGenerator.listen = function(){
+  dbUtil.mongoConnect(function(db){
+    var client = redis.createClient();
+    client.subscribe("ticks");
 
-  client.subscribe("ticks");
-  client.on("message", function(channel, message){
-    var tick = JSON.parse(message);
-    store_tick(tick.pair, tick.timestamp, tick.ask, tick.bid);
+    client.on("message", function(channel, message){
+      var tick = JSON.parse(message);
+      tickGenerator.store_tick(tick, db);
+    });
   });
 }
 
-tick_generator.store_tick = function(pair, timestamp, ask, bid){
-
+tickGenerator.store_tick = function(tick, db){
+  var ticks = db.collection('ticks');
+  ticks.insertOne(tick, function(err, res){});
 }
