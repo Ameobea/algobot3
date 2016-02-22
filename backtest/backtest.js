@@ -126,6 +126,7 @@ backtest.liveSend = function(chunk, chunkResult, curIndex, diff, oldTime, pair, 
 
 backtest.fast = function(pair, startTime, diff){
   backtest.checkIfRunning(pair, function(running){
+    console.log(running);
     if(!running){
       backtest.setRunningFlag(pair, function(){
         var client = redis.createClient();
