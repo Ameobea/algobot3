@@ -8,10 +8,10 @@
     $("#backtest_start_button").click(function(){
       if($("#backtest_type_selector option:selected").text().toLowerCase() == "fast"){
         var request_address = server_address + "api/backtest/start/fast/" + $("#backtest_start_pair").val();
-        $.post(request_address, {start_time: $("#backtest_start_time").val(), interval: $("#backtest_send_interval").val()});
+        $.post(request_address, {startTime: $("#backtest_startTime").val(), interval: $("#backtest_send_interval").val()});
       }else{
         var request_address = server_address + "api/backtest/start/live/" + $("#backtest_start_pair").val();
-        $.post(request_address, {start_time: $("#backtest_start_time").val()});
+        $.post(request_address, {startTime: $("#backtest_startTime").val()});
       }
     });
     $("#backtest_stop_button").click(function(){
@@ -25,10 +25,10 @@
   <h1>Bot Admin Functions</h1>
   <h1>Backtests</h1>
   <h2>Start Backtest</h2>
-  <b>Currency Pair:  </b><input type="text" placeholder="Currency Pair" id="backtest_start_pair">
+  <b>Currency Pair:  </b><input type="text" value="usdcad" id="backtest_start_pair">
   <br><b>Type:  </b><select id="backtest_type_selector"><option value="fast">Fast</option><option value="live">Live</option></select>
-  <br><b>Start Time:  </b><input type="text" placeholder="Start Time" id="backtest_start_time">
-  <br><b>Fast Send Interval:  </b><input type="text" placeholder="Fast Send Interval" id="backtest_send_interval">
+  <br><b>Start Time:  </b><input type="text" value="1407099541.32" id="backtest_startTime">
+  <br><b>Fast Send Interval:  </b><input type="text" value="50" id="backtest_send_interval">
   <br><input type="button" value="Start" id="backtest_start_button">
   <hr>
   <h2>Stop Backtests</h2>
