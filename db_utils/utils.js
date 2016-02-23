@@ -19,3 +19,24 @@ dbUtil.mongoConnect = function(callback){
     }
   });
 }
+
+dbUtil.flush = function(callback){
+  dbUtil.mongoConnect(function(db){
+    db.collection("ticks").drop(function(err, res){
+      db.close();
+      callback()
+    });
+  });
+}
+
+dbUtil.init = function(callback){
+  dbUtil.mongoConnect(function(db){
+    var ticks = db.collection("ticks");
+
+    //create compound index along the keys pair and timestamp
+    ticks.createIndex({pair: 1, timestamp: 1}, function(err, res){
+      db.close();
+      callback();
+    });
+  });
+}

@@ -13,19 +13,27 @@ var dbUtil = require("../db_utils/utils");
 
 var tickGenerator = exports;
 
+//TODO: Make it so that it only stores a tick once the previous tick
+//has finished being stored.
 tickGenerator.listen = function(){
   dbUtil.mongoConnect(function(db){
-    var client = redis.createClient();
-    client.subscribe("ticks");
+    var redisListenClient = redis.createClient();
+    var redisPublishClient = redis.createClient();
+    redisListenClient.subscribe("ticks");
 
-    client.on("message", function(channel, message){
+    redisListenClient.on("message", function(channel, message){
       var tick = JSON.parse(message);
-      tickGenerator.store_tick(tick, db);
+      if(tick.stored == false){
+        tickGenerator.storeTick(tick, db, function(){
+          tick.stored = true;
+          redisPublishClient.publish("ticks", JSON.stringify(tick));
+        });
+      }
     });
   });
 }
 
-tickGenerator.store_tick = function(tick, db){
+tickGenerator.storeTick = function(tick, db, callback){
   var ticks = db.collection('ticks');
-  ticks.insertOne(tick, function(err, res){});
+  ticks.insertOne(tick, function(err, res){callback()});
 }

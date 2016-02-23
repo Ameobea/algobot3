@@ -20,8 +20,10 @@ backtest.checkIfRunning = function(pair, callback){
     flags.find({status: "running", pair: pair}).toArray(function(err, docs){
       db.close();
       if(docs.length > 0){
+        db.close();
         callback(true);
       }else{
+        db.close();
         callback(false);
       }
     });
@@ -68,7 +70,7 @@ backtest.live = function(pair, startTime){
               break;
             }
           }
-          var chunkFile =  backtest.readTickFile(pair, chunk, function(err, data){
+          backtest.readTickFile(pair, chunk, function(err, data){
             var chunkResult = [];
             var chunkData = data.split('\n');
             for(var i=1;i<chunkData.length;i++){
@@ -95,7 +97,7 @@ backtest.live = function(pair, startTime){
 
 backtest.liveSend = function(chunk, chunkResult, curIndex, diff, oldTime, pair, client){
   if(curIndex > chunkResult.length){
-    curIndex = 1
+    curIndex = 1;
     chunk++;
     chunkResult = [];
     var chunkData = data.split('\n');
@@ -126,7 +128,6 @@ backtest.liveSend = function(chunk, chunkResult, curIndex, diff, oldTime, pair, 
 
 backtest.fast = function(pair, startTime, diff){
   backtest.checkIfRunning(pair, function(running){
-    console.log(running);
     if(!running){
       backtest.setRunningFlag(pair, function(){
         var client = redis.createClient();
@@ -176,7 +177,7 @@ backtest.fastSend = function(chunk, chunkResult, curIndex, diff, oldTime, pair, 
     chunk++;
     chunkResult = [];
     var chunkData = data.split('\n');
-    var chunkFile = backtest.readTickFile(pair, chunk, function(err, data){
+    backtest.readTickFile(pair, chunk, function(err, data){
       for(var i=1;i<chunkData.length;i++){
         if(chunkData[i].length > 3){
           chunkResult.push(chunkData[i].split(','));
@@ -199,14 +200,12 @@ backtest.fastSend = function(chunk, chunkResult, curIndex, diff, oldTime, pair, 
 }
 
 backtest.readTickFile = function(pair, chunk, callback) {
-  return fs.readFile(
-    conf.public.tickDataDirectory + pair.toUpperCase() + '/' + pair.toUpperCase() + '_' + chunk + '.csv',
-    {encoding: 'utf8'}, 'r', callback
-  );
+  var filePath = conf.public.tickDataDirectory + pair.toUpperCase() + '/' + pair.toUpperCase() + '_' + chunk + '.csv';
+  fs.readFile(filePath, {encoding: 'utf8'}, function(err, data){callback(err, data)});
 };
 
 backtest.publishTick = function(pair, chunk, chunkResult, curIndex, diff, callback, client) {
-  var tickObject = {pair: pair, timestamp: chunkResult[curIndex][0], ask: chunkResult[curIndex][1], bid: chunkResult[curIndex][2]};
+  var tickObject = {pair: pair, timestamp: parseFloat(chunkResult[curIndex][0]), ask: parseFloat(chunkResult[curIndex][1]), bid: parseFloat(chunkResult[curIndex][2]), stored: false};
   client.publish("ticks", JSON.stringify(tickObject));
   setTimeout(function(){
     callback(chunk, chunkResult, curIndex + 1, diff, chunkResult[curIndex][0], pair, client);
