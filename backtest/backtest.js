@@ -1,3 +1,5 @@
+/*jslint node: true */
+"use strict";
 /*
 Backtest
 
@@ -9,7 +11,6 @@ and send them to the Tick Generator.
 var fs = require('fs');
 var conf = require("../conf/conf");
 var redis = require("redis");
-var mongodb = require("mongodb");
 var dbUtil = require("../db_utils/utils");
 
 var backtest = exports;
@@ -28,7 +29,7 @@ backtest.checkIfRunning = function(pair, callback){
       }
     });
   });
-}
+};
 
 backtest.clearFlags = function(callback){
   dbUtil.mongoConnect(function(db){
@@ -38,7 +39,7 @@ backtest.clearFlags = function(callback){
       callback();
     });
   });
-}
+};
 
 backtest.setRunningFlag = function(pair, callback){
   dbUtil.mongoConnect(function(db){
@@ -48,7 +49,7 @@ backtest.setRunningFlag = function(pair, callback){
       callback();
     });
   });
-}
+};
 
 backtest.live = function(pair, startTime){
   backtest.checkIfRunning(pair, function(running){
@@ -78,9 +79,10 @@ backtest.live = function(pair, startTime){
                 chunkResult.push(chunkData[i].split(','));
               }
             }
+            var curIndex;
             for(var i=0;i<chunkResult.length;i++){
               if(parseFloat(chunkResult[i][0]) > startTime){
-                var curIndex = i-1;
+                curIndex = i-1;
                 break;
               }
             }
@@ -93,7 +95,7 @@ backtest.live = function(pair, startTime){
       return "Backtest already running for symbol " + pair;
     }
   });
-}
+};
 
 backtest.liveSend = function(chunk, chunkResult, curIndex, diff, oldTime, pair, client){
   if(curIndex > chunkResult.length){
@@ -112,7 +114,7 @@ backtest.liveSend = function(chunk, chunkResult, curIndex, diff, oldTime, pair, 
   }else{
     diff = (parseFloat(chunkResult[curIndex+1][0]) - parseFloat(chunkResult[curIndex][0]))*1000;
   }
-  if(curIndex % conf.public.liveBacktestCheckInterval == 0){ //if this is a check interval
+  if(curIndex % conf.public.liveBacktestCheckInterval === 0){ //if this is a check interval
     backtest.checkIfRunning(pair, function(running){ 
       if(!running){ //and it's been cancelled
         console.log("Backtest for pair " + pair + " stopped.");
@@ -124,7 +126,7 @@ backtest.liveSend = function(chunk, chunkResult, curIndex, diff, oldTime, pair, 
   }else{ //it's not a check interval
     backtest.publishTick(pair, chunk, chunkResult, curIndex, diff, backtest.liveSend, client);
   }
-}
+};
 
 backtest.fast = function(pair, startTime, diff){
   backtest.checkIfRunning(pair, function(running){
@@ -133,30 +135,32 @@ backtest.fast = function(pair, startTime, diff){
         var client = redis.createClient();
         
         fs.readFile(conf.public.tickDataDirectory + pair.toUpperCase() + '/index.csv', {encoding: 'utf8'}, 'r', function(err,data){
-          result = [];
+          var result = [];
           var indexData = data.split('\n');
           for(var i=1;i<indexData.length;i++){
             if(indexData[i].length > 3){
               result.push(indexData[i].split(','));
             }
           }
+          var chunk;
           for(var i=0;i<result.length;i++){
             if(parseFloat(result[i][2]) > startTime){
-              var chunk = parseFloat(result[i][0]);
+              chunk = parseFloat(result[i][0]);
               break;
             }
           }
           var chunkFile = backtest.readTickFile(pair, chunk, function(err, data){
-            chunkResult = [];
+            var chunkResult = [];
             var chunkData = data.split('\n');
             for(var i=1;i<chunkData.length;i++){
               if(chunkData[i].length > 3){
                 chunkResult.push(chunkData[i].split(','));
               }
             }
+            var curIndex;
             for(var i=0;i<chunkResult.length;i++){
               if(parseFloat(chunkResult[i][0]) > startTime){
-                var curIndex = i-1;
+                curIndex = i-1;
                 break;
               }
             }
@@ -169,7 +173,7 @@ backtest.fast = function(pair, startTime, diff){
       return "Backtest already running for symbol " + pair;
     }
   });
-}
+};
 
 backtest.fastSend = function(chunk, chunkResult, curIndex, diff, oldTime, pair, client){
   if(curIndex > chunkResult.length){
@@ -185,7 +189,7 @@ backtest.fastSend = function(chunk, chunkResult, curIndex, diff, oldTime, pair, 
       }
     });
   }
-  if(curIndex % conf.public.fastBacktestCheckInterval == 0){ //if this is a check interval
+  if(curIndex % conf.public.fastBacktestCheckInterval === 0){ //if this is a check interval
     backtest.checkIfRunning(pair, function(running){ 
       if(!running){ //and it's been cancelled
         console.log("Backtest for pair " + pair + " stopped.");
@@ -197,15 +201,15 @@ backtest.fastSend = function(chunk, chunkResult, curIndex, diff, oldTime, pair, 
   }else{ //it's not a check interval
     backtest.publishTick(pair, chunk, chunkResult, curIndex, diff, backtest.fastSend, client);
   }
-}
+};
 
 backtest.readTickFile = function(pair, chunk, callback) {
   var filePath = conf.public.tickDataDirectory + pair.toUpperCase() + '/' + pair.toUpperCase() + '_' + chunk + '.csv';
-  fs.readFile(filePath, {encoding: 'utf8'}, function(err, data){callback(err, data)});
+  fs.readFile(filePath, {encoding: 'utf8'}, function(err, data){callback(err, data);});
 };
 
 backtest.publishTick = function(pair, chunk, chunkResult, curIndex, diff, callback, client) {
-  var tickObject = {pair: pair, timestamp: parseFloat(chunkResult[curIndex][0]), ask: parseFloat(chunkResult[curIndex][1]), bid: parseFloat(chunkResult[curIndex][2]), stored: false};
+  var tickObject = {pair: pair, timestamp: parseFloat(chunkResult[curIndex][0]), ask: parseFloat(chunkResult[curIndex][1]), bid: parseFloat(chunkResult[curIndex][2])};
   client.publish("ticks", JSON.stringify(tickObject));
   setTimeout(function(){
     callback(chunk, chunkResult, curIndex + 1, diff, chunkResult[curIndex][0], pair, client);
@@ -213,9 +217,10 @@ backtest.publishTick = function(pair, chunk, chunkResult, curIndex, diff, callba
 };
 
 backtest.stop = function(pair){
+  //TODO: by-backtest stopping
   dbUtil.mongoConnect(function(db){
     db.collection("backtestFlags").drop(function(err, res){
       db.close();
     });
   });
-}
+};

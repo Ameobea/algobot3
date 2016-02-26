@@ -12,6 +12,7 @@ var async = require("async");
 
 var conf = require("../conf/conf");
 var dbUtil = require("../db_utils/utils");
+var sma = require("../algos/average/sma");
 
 var tickGenerator = exports;
 
@@ -23,27 +24,46 @@ tickGenerator.listen = function(){
     var redisListenClient = redis.createClient();
     var redisPublishClient = redis.createClient();
 
-    var storeQueue = async.queue(function(tick, callback){
-      tick.stored = true;
-      tickGenerator.storeTick(tick, db, function(){
-        redisPublishClient.publish("ticks", JSON.stringify(tick));
-        callback();
-      });
-    }, 1);
+    var prevTick; //last tick from previous average period
+    var storeQueue = []; //stores ticks waiting to be processed&stored
 
     redisListenClient.subscribe("ticks");
 
     redisListenClient.on("message", function(channel, message){
       var tick = JSON.parse(message);
-      if(tick.stored == false){
-        storeQueue.push(tick, function(err){});
+      tick.price = (tick.bid+tick.ask)/2;
+      if(!prevTick){
+        prevTick = tick;
+      }
+      storeQueue.push(tick);tick.timestamp > prevTick.timestamp+conf.public.priceResolution
+      if(tick.timestamp > prevTick.timestamp+conf.public.priceResolution){ // it's time to calculate an average price
+        storeQueue.unshift(prevTick);
+        tickGenerator.calcPeriodAverage(storeQueue, tick.timestamp, redisPublishClient, db, function(average, prev){
+          prevTick = prev;
+          storeQueue = [];
+        });
       }
     });
   });
 }
 
-tickGenerator.storeTick = function(tick, db, callback){
-  var ticks = db.collection('ticks');
-  ticks.insertOne(tick, function(err, res){callback()});
+tickGenerator.calcPeriodAverage = function(ticks, curTime, redisClient, mongoClient, callback){
+  if(ticks.length > 0){
+    sma.rawCalc(ticks, curTime-1000, curTime, true, function(periodAverage){
+      tickGenerator.storePeriodAverage(ticks[0].pair, curTime, periodAverage, mongoClient, function(){
+        var publishObject = {pair: ticks[0].pair, timestamp: curTime, price: periodAverage};
+        redisClient.publish("prices", JSON.stringify(publishObject));
+        callback(periodAverage, ticks[ticks.length-1]);
+      });
+    });
+  }else{
+    return false;
+  }
 }
 
+tickGenerator.storePeriodAverage = function(pair, timestamp, secondAverage, db, callback){
+  var pricesCollection = db.collection("prices");
+  pricesCollection.insertOne({pair: pair, timestamp: timestamp, price: secondAverage}, function(res){
+    callback();
+  })
+}

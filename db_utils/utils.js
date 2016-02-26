@@ -1,3 +1,5 @@
+/*jslint node: true */
+"use strict";
 /*
 Database Utilities
 
@@ -11,30 +13,33 @@ var conf = require("../conf/conf");
 
 var dbUtil = exports;
 
+var Logger = mongodb.Logger;
+
 dbUtil.mongoConnect = function(callback){
-  console.log("new connection to mongodb");
   var mongoClient = mongodb.MongoClient;
   mongoClient.connect(conf.private.mongodbIP + "/" + conf.private.mongodbDatabase, function(err, db){
     if(!err){
+      if(conf.public.mongoDebug){Logger.setLevel('debug');}
       callback(db);
     }else{
       console.log("Error connecting to mongodb!");
     }
   });
-}
+};
 
 dbUtil.flush = function(callback){
   dbUtil.mongoConnect(function(db){
     async.parallel([
-      function(){db.collection("ticks").drop(function(err, res){})},
-      function(){db.collection("smas").drop(function(err, res){})},
-      function(){db.collection("momentums").drop(function(err, res){})}
+      function(){db.collection("ticks").drop(function(err, res){});},
+      function(){db.collection("smas").drop(function(err, res){});},
+      function(){db.collection("momentums").drop(function(err, res){});},
+      function(){db.collection("prices").drop(function(err, res){});}
     ], function(){
       db.close();
-      callback()
+      callback();
     });
   });
-}
+};
 
 dbUtil.init = function(callback){
   dbUtil.mongoConnect(function(db){
@@ -46,4 +51,4 @@ dbUtil.init = function(callback){
       callback();
     });
   });
-}
+};

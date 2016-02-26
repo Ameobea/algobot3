@@ -27,3 +27,12 @@ TODO: Replace with a threshold that sets this value depending on the
 resolution of the average being calculated. */
 public.accurateSMA = true;
 public.accurateMomentum = true;
+
+//dynamically adjust based on server load?
+public.priceResolution = 1; //5 = calc&store tick average every 5 seconds
+
+//enables debug output to the console for mongodb connections
+public.mongoLoggre = false;
+
+//number the momentum is multiplied by before being stored in the database
+public.momentumMultiplier = 10000;

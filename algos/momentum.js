@@ -16,24 +16,19 @@ momentum.calcMany = function(pair, endTime, averagePeriod, momentumPeriods, db, 
 
   for(var i=0;i<momentumPeriods.length; i++){
     var momentumPeriod = momentumPeriods[i];
-    tasks.push(function(callback2){momentum.momentum(pair, endTime, averagePeriod, momentumPeriod, db, false, callback)});
+    tasks.push(function(callback2){momentum.momentum(pair, endTime, averagePeriod, momentumPeriod, db, callback)});
   }
   async.parallel(tasks, function(err, res){
     if(err){
       console.log(err);
-    }else{
-      db.close()
     }
   });
 }
 
-momentum.momentum = function(pair, endTime, averagePeriod, momentumPeriod, db, single, callback){
+momentum.momentum = function(pair, endTime, averagePeriod, momentumPeriod, db, callback){
   momentum.calc(pair, endTime-momentumPeriod, endTime, averagePeriod, conf.public.accurateMomentum, db, function(momentumValue){
-    momentum.store(pair, averagePeriod, momentumPeriod, momentumValue, callback);
+    momentum.store(pair, averagePeriod, momentumPeriod, momentumValue, db, callback);
   });
-  if(single){
-    db.close();
-  }
 }
 
 momentum.calc = function(pair, startTime, endTime, averagePeriod, accurate, db, callback){
@@ -47,26 +42,28 @@ momentum.calc = function(pair, startTime, endTime, averagePeriod, accurate, db, 
           if(err){
             console.log(err);
           }else{
-            averageData.push(prevAverage);
-            callback(averageData[0] - averageData[averageData.length-1]) / (endTime-startTime);
+            if(prevAverage.length > 0){
+              averageData.unshift(prevAverage);
+            }else{
+              averageData.unshift(averageData[0]);
+            }
+            callback((averageData[0].value - averageData[averageData.length-1].value) / (endTime-startTime))*conf.public.momentumMultiplier; //accurate
           }
         });
-        callback(averageData[0] - averageData[averageData.length-1]) / (endTime-startTime);
+      }else{
+        callback((averageData[0].value - averageData[averageData.length-1].value) / (endTime-startTime))*conf.public.momentumMultiplier; //non-accurate
       }
     }
   });
 }
 
 momentum.store = function(pair, averagePeriod, momentumPeriod, momentumValue, db, callback){
-  dbUtils.mongoConnect(function(db){
-    var momentums = db.collection("momentums");
-
-    momentums.insertOne({pair: pair, averagePeriod: averagePeriod, momentumPeriod: momentumPeriod, momentum: momentumValue}, function(err, res){
-      if(err){
-        console.log(err);
-      }else{
-        callback(momentumValue);
-      }
-    });
+  var momentums = db.collection("momentums");
+  momentums.insertOne({pair: pair, averagePeriod: averagePeriod, momentumPeriod: momentumPeriod, momentum: momentumValue}, function(err, res){
+    if(err){
+      console.log(err);
+    }else{
+      callback(momentumValue);
+    }
   });
 }
