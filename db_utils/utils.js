@@ -43,10 +43,10 @@ dbUtil.flush = function(callback){
 
 dbUtil.init = function(callback){
   dbUtil.mongoConnect(function(db){
-    var ticks = db.collection("ticks");
+    var prices = db.collection("prices");
 
     //create compound index along the keys pair and timestamp
-    ticks.createIndex({pair: 1, timestamp: 1}, function(err, res){
+    prices.createIndex({pair: 1, timestamp: 1}, function(err, res){
       var smas = db.collection("smas");
 
       smas.createIndex({pair: 1, period: 1, timestamp: 1}, function(err, res){

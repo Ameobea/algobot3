@@ -63,3 +63,4 @@ momentum.store = function(pair, averagePeriod, momentumPeriod, timestamp, moment
     }
   });
 }
+//var temp = db.smas.find({pair: "usdcad", period: 300, timestamp: {$gte: 1407099583.24, $lte: 1407099586.62}}).explain()
