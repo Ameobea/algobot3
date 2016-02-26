@@ -47,8 +47,12 @@ dbUtil.init = function(callback){
 
     //create compound index along the keys pair and timestamp
     ticks.createIndex({pair: 1, timestamp: 1}, function(err, res){
-      db.close();
-      callback();
+      var smas = db.collection("smas");
+
+      smas.createIndex({pair: 1, period: 1, timestamp: 1}, function(err, res){
+        db.close();
+        callback();
+      });
     });
   });
 };

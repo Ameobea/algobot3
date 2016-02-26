@@ -7,7 +7,7 @@ This script takes a range of ticks as input and calculates the average
 price of a pair across that time frame, taking into what percent of the
 period each tick took up and weighting them accordingly.
 */
-var async = require("async");
+var Promise = require("promise");
 
 var priceUtils = require("../../db_utils/prices");
 var conf = require("../../conf/conf");
@@ -17,19 +17,15 @@ var sma = exports;
 //calculates multiple averages at different periods from one end time
 //callback is called for each individual average calculated
 sma.averageMany = function(pair, timestamp, periods, db, callback){
-  var tasks = [];
-
-  for(var i=0;i<periods.length;i++){
-    var period = periods[i];
-    var nullFunction = function(){};
-    tasks.push(function(nullFunction){sma.average(pair, timestamp, period, db, callback)});
-  }
-  async.parallel(tasks, function(err, res){
-    if(err){
-      console.log(err);
-    }
+  var tasks = periods.map(function(x){
+    return new Promise(function(fulfill, reject){
+      sma.average(pair, timestamp, x, db, function(average, averagePeriod){
+        fulfill(callback(average, averagePeriod));
+      });
+    });
   });
-};
+  Promise.all(tasks);
+}
 
 //pull prices from database and calculate average; then store.
 sma.average = function(pair, timestamp, period, db, callback){

@@ -18,15 +18,12 @@ var core = exports;
 
 core.start = function(){
   dbUtil.mongoConnect(function(db){
-    db.on("close", function(){console.log("Main MongoDB Connection Dead.");});
-    db.on("error", function(){console.log("Main MongoDB Connection Error.");});
-    db.on("timeout", function(){console.log("Main MongoDB Database Timed Out.");});
     var redisClient = redis.createClient();
     redisClient.subscribe("prices");
     redisClient.on("message", function(channel, message){
       var priceUpdate = JSON.parse(message);
       core.calcAverages(priceUpdate, db, function(average, averagePeriod){ // calc all averages for that priceUpdate
-        core.calcMomentums(priceUpdate, averagePeriod, db, function(){
+        core.calcMomentums(priceUpdate, averagePeriod, db, function(momentum, momentumPeriod){
 
         });
       });
