@@ -32,7 +32,10 @@ public.accurateMomentum = true;
 public.priceResolution = 1; //5 = calc&store tick average every 5 seconds
 
 //enables debug output to the console for mongodb connections
-public.mongoLoggre = false;
+public.mongoDebug = false;
 
 //number the momentum is multiplied by before being stored in the database
 public.momentumMultiplier = 10000;
+
+//if true, raw ticks will be stored in the database for debug/analysis purposes.
+public.storeRawTicks = false;

@@ -37,3 +37,6 @@ conf/private.js
 
 # Tick data flatfile storage
 tick_data/*
+
+# database dump utility output
+utils/output
