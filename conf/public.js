@@ -26,7 +26,6 @@ is calculated to get the tick that came before a matched set of ticks.
 TODO: Replace with a threshold that sets this value depending on the
 resolution of the average being calculated. */
 public.accurateSMA = true;
-public.accurateMomentum = true;
 
 //dynamically adjust based on server load?
 public.priceResolution = 1; //5 = calc&store tick average every 5 seconds

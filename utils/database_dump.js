@@ -18,7 +18,7 @@ dbUtils.mongoConnect(function(db){
     new Promise(function(fulfill, reject){
       db.collection("prices").find().sort({timestamp: 1}).toArray(function(err, res){
         if(res.length > 0){
-          fulfill([res, "prices", ["pair", "timestamp", "price"]]);
+          fulfill([res, "prices", ["timestamp", "pair", "price"]]);
         }else{
           fulfill(false);
         }
@@ -29,7 +29,7 @@ dbUtils.mongoConnect(function(db){
     new Promise(function(fulfill, reject){
       db.collection("smas").find().sort({timestamp: 1}).toArray(function(err, res){
         if(res.length > 0){
-          fulfill([res, "smas", ["pair", "period", "timestamp", "value"]]);
+          fulfill([res, "smas", ["timestamp", "pair", "period", "value"]]);
         }else{
           fulfill(false);
         }
@@ -40,7 +40,7 @@ dbUtils.mongoConnect(function(db){
     new Promise(function(fulfill, reject){
       db.collection("momentums").find().sort({timestamp: 1}).toArray(function(err, res){
         if(res.length > 0){
-          fulfill([res, "momentum", ["pair", "averagePeriod", "momentumPeriod", "timestamp", "momentum"]]);
+          fulfill([res, "momentum", ["timestamp", "pair", "averagePeriod", "momentumPeriod", "momentum"]]);
         }else{
           fulfill(false);
         }
@@ -52,14 +52,13 @@ dbUtils.mongoConnect(function(db){
     new Promise(function(fulfill, reject){
       db.collection("ticks").find().sort({timestamp: 1}).toArray(function(err, res){
         if(res.length > 0){
-          fulfill([res, "ticks", ["pair", "bid", "ask", "timestamp"]]);
+          fulfill([res, "ticks", ["timestamp", "pair", "bid", "ask"]]);
         }else{
           fulfill(false);
         }
       });
     })
   );
-
 
   Promise.all(toProcess).then(function(res){
     var resLength = 0;

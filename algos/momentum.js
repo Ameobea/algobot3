@@ -21,33 +21,26 @@ momentum.calcMany = function(pair, endTime, averagePeriod, momentumPeriods, db, 
 };
 
 momentum.momentum = function(pair, endTime, averagePeriod, momentumPeriod, db, callback){
-  momentum.calc(pair, endTime-momentumPeriod, endTime, averagePeriod, conf.public.accurateMomentum, db, function(momentumValue){
+  momentum.calc(pair, endTime-momentumPeriod, endTime, averagePeriod, db, function(momentumValue){
     momentum.store(pair, averagePeriod, momentumPeriod, endTime, momentumValue, db, callback);
   });
 }
 
-momentum.calc = function(pair, startTime, endTime, averagePeriod, accurate, db, callback){
+momentum.calc = function(pair, startTime, endTime, averagePeriod, db, callback){
   var smas = db.collection("smas");
-  smas.find({pair: pair, period: averagePeriod, timestamp: {$gte: startTime, $lte: endTime}}).toArray(function(err, averageData){
+  smas.find({pair: pair, period: averagePeriod, timestamp: {$lte: startTime}}).sort({timestamp: -1}).limit(1).toArray(function(err, firstAverage){
     if(err){
       console.log(err);
     }else{
-      if(accurate){
-        smas.find({pair: pair, period: averagePeriod, timestamp: {$lte: startTime}}).sort({timestamp: -1}).limit(1).toArray(function(err, prevAverage){
-          if(err){
-            console.log(err);
-          }else{
-            if(prevAverage.length > 0){
-              averageData.unshift(prevAverage);
-            }else{
-              averageData.unshift(averageData[0]);
-            }
-            callback((averageData[0].value - averageData[averageData.length-1].value) / (endTime-startTime))*conf.public.momentumMultiplier; //accurate
-          }
-        });
-      }else{
-        callback((averageData[0].value - averageData[averageData.length-1].value) / (endTime-startTime))*conf.public.momentumMultiplier; //non-accurate
-      }
+      smas.find({pair: pair, period: averagePeriod, timestamp: endTime}).sort({timestamp: -1}).limit(1).toArray(function(err, lastAverage){
+        if(err || (firstAverage.length == 0 || lastAverage.length == 0)){
+          console.log("Momentum calculation can't find matching SMAS");
+        }else{
+          var time = endTime - startTime;
+          var change = lastAverage - firstAverage;
+          callback(change / time);
+        }
+      });
     }
   });
 }
@@ -63,4 +56,3 @@ momentum.store = function(pair, averagePeriod, momentumPeriod, timestamp, moment
     }
   });
 }
-//var temp = db.smas.find({pair: "usdcad", period: 300, timestamp: {$gte: 1407099583.24, $lte: 1407099586.62}}).explain()
