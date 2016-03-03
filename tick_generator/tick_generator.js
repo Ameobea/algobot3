@@ -63,7 +63,11 @@ tickGenerator.calcPeriodAverage = function(ticks, curTime, redisClient, mongoCli
 
 tickGenerator.storePeriodAverage = function(pair, timestamp, secondAverage, db, callback){
   var pricesCollection = db.collection("prices");
-  pricesCollection.insertOne({pair: pair, timestamp: timestamp, price: secondAverage}, function(res){
+  var doc = {pair: pair, timestamp: timestamp, price: secondAverage};
+  pricesCollection.insertOne(doc, function(res){
     callback();
+    if(conf.public.pubPrices){
+      gRedis.publish("prices", JSON.stringify(doc));
+    }
   })
 }

@@ -73,7 +73,11 @@ sma.rawCalc = function(prices, startTime, endTime, accurate, callback){
 //stores average in database
 sma.store = function(pair, timestamp, period, value, db, callback){
   var smas = db.collection("smas");
-  smas.insertOne({pair: pair, period: period, timestamp: timestamp, value: value}, function(res){
+  var doc = {pair: pair, period: period, timestamp: timestamp, value: value};
+  smas.insertOne(doc, function(res){
+    if(conf.public.pubSmas){
+      gRedis.publish("smas", JSON.stringify(doc));
+    }
     callback();
   });
 };

@@ -1,3 +1,5 @@
+var redis = require("redis");
+
 var manager = require("./manager/manager");
 var conf = require("./conf/conf");
 var tickGenerator = require("./tick_generator/tick_generator");
@@ -6,6 +8,8 @@ var core = require("./algo_core/core");
 var dbUtil = require("./db_utils/utils");
 
 dbUtil.init(function(){
+  gRedis = redis.createClient(); //global redis client
+
   manager.start(conf.public.managerServerPort);
   tickGenerator.listen();
   core.start();

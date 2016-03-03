@@ -1,0 +1,39 @@
+<html>
+<head>
+<title>Algobot Monitoring Interface</title>
+<script type="text/javascript" src="http://code.jquery.com/jquery-1.10.1.js"></script>
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="../sources/monitor_script.js"></script>
+</head>
+<body>
+<h1><center>Algobot Monitoring Interface</center></h1>
+<div id="mainChart" style="width: 100%; height: 700px; margin: 0 auto"></div>
+<div id="config">
+  <h2>Chart Config</h2>
+  <p>Note: For momentum pair, enter it in the format [averagePeriod],[momentumPeriod].</p>
+  <table>
+  <tr>
+  <td>Symbol</td>
+  <td>Average Periods</td>
+  <td>Momentum Pairs</td>
+  </tr>
+  <tr>
+  <td>
+    <input type="text" class="pairInput"><br>
+  </td>
+  <td id="averages">
+    <input type="text" class="averageInput"><br>
+    <input type="button" id="averageRemove" value="Remove One"><input type="button" id="averageExtend" value="Add Another">
+  </td>
+  <td id="momentums">
+    <input type="text" class="momentumInput"><br>
+    <input type="button" id="momentumRemove" value="Remove One"><input type="button" id="momentumExtend" value="Add Another">
+  </td>
+  </tr>
+  <tr>
+  <td><input type="button" id="updatePair" value="Update"></td>
+  </tr>
+  </table>
+</div>
+</body>
+</html>

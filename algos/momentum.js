@@ -1,3 +1,5 @@
+"use strict";
+/*jslint node: true */
 /*
 Momentum Calculator
 
@@ -18,13 +20,14 @@ momentum.calcMany = function(pair, endTime, averagePeriod, momentumPeriods, db, 
       });
     });
   });
+  Promise.all(tasks);
 };
 
 momentum.momentum = function(pair, endTime, averagePeriod, momentumPeriod, db, callback){
   momentum.calc(pair, endTime-momentumPeriod, endTime, averagePeriod, db, function(momentumValue){
     momentum.store(pair, averagePeriod, momentumPeriod, endTime, momentumValue, db, callback);
   });
-}
+};
 
 momentum.calc = function(pair, startTime, endTime, averagePeriod, db, callback){
   var smas = db.collection("smas");
@@ -33,26 +36,29 @@ momentum.calc = function(pair, startTime, endTime, averagePeriod, db, callback){
       console.log(err);
     }else{
       smas.find({pair: pair, period: averagePeriod, timestamp: endTime}).sort({timestamp: -1}).limit(1).toArray(function(err, lastAverage){
-        if(err || (firstAverage.length == 0 || lastAverage.length == 0)){
-          console.log("Momentum calculation can't find matching SMAS");
+        if(err || (firstAverage.length === 0 || lastAverage.length === 0)){
+          //console.log("Momentum calculation can't find matching SMAS");
         }else{
           var time = endTime - startTime;
-          var change = lastAverage - firstAverage;
-          callback(change / time);
+          var change = lastAverage[0].value - firstAverage[0].value;
+          callback((change / time) * conf.public.momentumMultiplier);
         }
       });
     }
   });
-}
+};
 
 momentum.store = function(pair, averagePeriod, momentumPeriod, timestamp, momentumValue, db, callback){
   var momentums = db.collection("momentums");
-  var toInsert = {pair: pair, averagePeriod: averagePeriod, momentumPeriod: momentumPeriod, timestamp: timestamp, momentum: momentumValue};
-  momentums.insertOne(toInsert, function(err, res){
+  var doc = {pair: pair, averagePeriod: averagePeriod, momentumPeriod: momentumPeriod, timestamp: timestamp, momentum: momentumValue};
+  momentums.insertOne(doc, function(err, res){
     if(err){
       console.log(err);
     }else{
+      if(conf.public.pubMomentums){
+        gRedis.publish("momentums", JSON.stringify(doc));
+      }
       callback(momentumValue, momentumPeriod);
     }
   });
-}
+};

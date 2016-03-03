@@ -34,7 +34,17 @@ public.priceResolution = 1; //5 = calc&store tick average every 5 seconds
 public.mongoDebug = false;
 
 //number the momentum is multiplied by before being stored in the database
-public.momentumMultiplier = 10000;
+public.momentumMultiplier = 10000000;
 
 //if true, raw ticks will be stored in the database for debug/analysis purposes.
 public.storeRawTicks = false;
+
+//which average/momentum periods are calculated by the bot and monitored for crosses
+public.monitoredAveragePeriods = [10,30,60,300,3000];
+public.monitoredMomentumPeriods = [60,120,300,1000];
+
+//set these to true to enable calculations to be sent through redis pusub
+public.pubTicks = false;
+public.pubPrices = true;
+public.pubSmas = true;
+public.pubMomentums = true;

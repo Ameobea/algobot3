@@ -1,0 +1,75 @@
+"use strict";
+/*jslint node: true */
+var main_graph;
+var buttonHTML;
+var oldHTML;
+var lastHTML;
+
+var socket = new WebSocket("ws://<%= websocketIp %>");
+
+socket.onmessage = function(text){
+  var parsed = JSON.parse(text.data);
+  console.log(parsed);
+};
+
+var setupConfigListeners = function(){
+  $("#averageExtend").off().click(function(){
+    buttonHTML = '<input type="button" id="averageRemove" value="Remove One"><input type="button" id="averageExtend" value="Add Another">';
+    oldHTML = $("#averages").html().split(buttonHTML)[0];
+    $("#averages").html(oldHTML + '<input type="text" class="averageInput"><br>\n' + buttonHTML);
+    setupConfigListeners();
+  });
+
+  $("#averageRemove").off().click(function(){
+    buttonHTML = '<input type="button" id="averageRemove" value="Remove One"><input type="button" id="averageExtend" value="Add Another">';
+    lastHTML = '<input type="text" class="averageInput"><br>\n' + buttonHTML;
+    oldHTML = $("#averages").html().split(lastHTML)[0];
+    $("#averages").html(oldHTML + buttonHTML);
+    setupConfigListeners();
+  });
+
+  $("#momentumExtend").off().click(function(){
+    buttonHTML = '<input type="button" id="momentumRemove" value="Remove One"><input type="button" id="momentumExtend" value="Add Another">';
+    oldHTML = $("#momentums").html().split(buttonHTML)[0];
+    $("#momentums").html(oldHTML + '<input type="text" class="momentumInput"><br>\n' + buttonHTML);
+    setupConfigListeners();
+  });
+
+  $("#momentumRemove").off().click(function(){
+    var buttonHTML = '<input type="button" id="momentumRemove" value="Remove One"><input type="button" id="momentumExtend" value="Add Another">';
+    var lastHTML = '<input type="text" class="momentumInput"><br>\n' + buttonHTML;
+    var oldHTML = $("#momentums").html().split(lastHTML)[0];
+    $("#momentums").html(oldHTML + buttonHTML);
+    setupConfigListeners();
+  });
+};
+
+$(document).ready(function(){
+  main_graph = new Highcharts.Chart({
+    chart: {
+      renderTo: 'mainChart'
+    },
+    title: {
+      text: 'Main Chart'
+    },
+    xAxis: {
+      type: 'datetime',
+      tickPixelInterval: 150,
+      maxZoom: 20 * 1000
+    },
+    yAxis: {
+      minPadding: 0.2,
+      maxPadding: 0.2,
+      title: {
+        text: 'Value',
+        margin: 80
+      }
+    },
+    series: [{
+      name: 'Prices',
+      data: []
+    }]
+  });
+
+  setupConfigListeners();
+});

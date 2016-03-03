@@ -1,7 +1,10 @@
-var public = require("./public");
-var private = require("./private");
+/*jslint node: true */
+"use strict";
+
+var pub = require("./public");
+var priv = require("./private");
 
 var conf = exports;
 
-conf.public = public;
-conf.private = private;
+conf.public = pub;
+conf.private = priv;

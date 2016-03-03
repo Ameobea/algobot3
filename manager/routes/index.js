@@ -7,4 +7,12 @@ router.get('/', function(req, res, next) {
   res.render('index', {ip: conf.public.managerServerIP+":"+conf.public.managerServerPort+"/"});
 });
 
+router.get('/sources/:file', function(req, res, next){
+  res.render('sources/' + req.params.file.split(".")[0], {websocketIp: conf.private.websocketIp});
+});
+
+router.get("/monitor", function(req, res, next){
+  res.render("monitor");
+});
+
 module.exports = router;
