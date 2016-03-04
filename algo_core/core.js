@@ -17,9 +17,6 @@ var momentumCalc = require("../algos/momentum");
 
 var core = exports;
 
-var averagePeriods = conf.public.monitoredAveragePeriods;
-var momentumPeriods = conf.public.monitoredMomentumPeriods;
-
 core.start = function(){
   dbUtil.mongoConnect(function(db){
     var curPrice;
@@ -36,8 +33,8 @@ core.start = function(){
     redisClient.on("message", function(channel, message){
       var priceUpdate = JSON.parse(message);
 
-      var pair = message.pair;
-      var timestamp = message.timestamp;
+      var pair = priceUpdate.pair;
+      var timestamp = priceUpdate.timestamp;
 
       if(!curAverages.pair){
         curAverages.pair = {};
@@ -45,18 +42,41 @@ core.start = function(){
       }
 
       lastPrice = curPrice;
-      curPrice = message.price;
+      curPrice = [priceUpdate.timestamp, priceUpdate.price];
 
-      core.calcAverages(priceUpdate, averagePeriods, db, function(average, averagePeriod){
+      var toAverage = [];
+
+      conf.public.monitoredAveragePeriods.forEach(function(period){
+        if(curAverages.pair[period]){
+          if((timestamp - curAverages.pair[period][0]) > period/4){ //calc average if the time that has passed > 1/4 its period
+            toAverage.push(period);
+          }
+        }else{
+          toAverage.push(period);
+        }
+      });
+
+      core.calcAverages(priceUpdate, toAverage, db, function(average, averagePeriod){
         averagePeriod = averagePeriod.toString();
 
         if(curAverages.pair[averagePeriod]){
           lastAverages.pair[averagePeriod] = curAverages[averagePeriod];
         }
-        curAverages[averagePeriod] = average;
+        curAverages.pair[averagePeriod] = [timestamp, average];
         // Averages updated
 
-        core.calcMomentums(priceUpdate, parseInt(averagePeriod), momentumPeriods, db, function(momentum, momentumPeriod){
+        var toMomentum = [];
+        conf.public.monitoredMomentumPeriods.forEach(function(period){
+          if(curMomentums.pair && curMomentums.pair[averagePeriod] && curMomentums.pair[averagePeriod][period]){
+            if((timestamp - curMomentums.pair[averagePeriod][period][0]) > period/4){
+              toMomentum.push(period);
+            }
+          }else{
+            toMomentum.push(period);
+          }
+        });
+
+        core.calcMomentums(priceUpdate, parseInt(averagePeriod), toMomentum, db, function(momentum, momentumPeriod){
           momentumPeriod = momentumPeriod.toString();
 
           if(!curMomentums.pair){
@@ -72,7 +92,6 @@ core.start = function(){
           }
           curMomentums.pair[averagePeriod][momentumPeriod] = [timestamp, momentum];
           // Momentums updated
-
 
         });
       });

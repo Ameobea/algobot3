@@ -7,8 +7,6 @@ var bodyParser = require('body-parser');
 var ws = require('nodejs-websocket');
 var redis = require("redis");
 
-var conf = require("../conf/conf");
-
 var manager = exports;
 
 manager.start = function(port){
@@ -28,12 +26,12 @@ manager.start = function(port){
   app.use('/', index);
   app.use("/api", api);
 
-  var socket_server = ws.createServer(function(conn){
-    socket_server.on('error', function(err){
+  var socketServer = ws.createServer(function(conn){
+    socketServer.on('error', function(err){
       console.log(err);
     });
     conn.on('text', function(input){
-      socket_server.connections.forEach(function(connection){
+      socketServer.connections.forEach(function(connection){
         connection.sendText(input);
       });
     });
@@ -46,7 +44,7 @@ manager.start = function(port){
   redisClient.subscribe("momentums");
 
   redisClient.on("message", function(channel, message){
-    socket_server.connections.forEach(function(conn){
+    socketServer.connections.forEach(function(conn){
       conn.sendText(message);
     });
   });

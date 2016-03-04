@@ -7,7 +7,8 @@
 </head>
 <body>
 <h1><center>Algobot Monitoring Interface</center></h1>
-<div id="mainChart" style="width: 100%; height: 700px; margin: 0 auto"></div>
+<div id="mainGraph" style="width: 100%; height: 475px; margin: 0 auto"></div>
+<div id="momentumGraph" style="width: 100%; height: 350px; margin: 0 auto"></div>
 <div id="config">
   <h2>Chart Config</h2>
   <p>Note: For momentum pair, enter it in the format [averagePeriod],[momentumPeriod].</p>
@@ -19,19 +20,19 @@
   </tr>
   <tr>
   <td>
-    <input type="text" class="pairInput"><br>
+    <input type="text" id="pairInput" value="usdcad"><br>
   </td>
   <td id="averages">
-    <input type="text" class="averageInput"><br>
+    <input type="text" class="averageInput" value="30"><br>
     <input type="button" id="averageRemove" value="Remove One"><input type="button" id="averageExtend" value="Add Another">
   </td>
   <td id="momentums">
-    <input type="text" class="momentumInput"><br>
+    <input type="text" class="momentumInput" value="30,120"><br>
     <input type="button" id="momentumRemove" value="Remove One"><input type="button" id="momentumExtend" value="Add Another">
   </td>
   </tr>
   <tr>
-  <td><input type="button" id="updatePair" value="Update"></td>
+  <td><input type="text" id="timeRange" value="1000"><input type="button" id="update" value="Update and Reset"></td>
   </tr>
   </table>
 </div>

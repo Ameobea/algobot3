@@ -1,3 +1,4 @@
+"use strict";
 /*
 Tick Generator
 
@@ -7,8 +8,6 @@ other modules that need them.
 */
 
 var redis = require("redis");
-var mongodb = require("mongodb");
-var async = require("async");
 
 var conf = require("../conf/conf");
 var dbUtil = require("../db_utils/utils");
@@ -29,13 +28,14 @@ tickGenerator.listen = function(){
 
     redisListenClient.subscribe("ticks");
 
+    var tick;
     redisListenClient.on("message", function(channel, message){
-      var tick = JSON.parse(message);
+      tick = JSON.parse(message);
       tick.price = (tick.bid+tick.ask)/2;
       if(!prevTick){
         prevTick = tick;
       }
-      storeQueue.push(tick);tick.timestamp > prevTick.timestamp+conf.public.priceResolution
+      storeQueue.push(tick);
       if(tick.timestamp > prevTick.timestamp+conf.public.priceResolution){ // it's time to calculate an average price
         storeQueue.unshift(prevTick);
         tickGenerator.calcPeriodAverage(storeQueue, tick.timestamp, redisPublishClient, db, function(average, prev){
@@ -45,7 +45,7 @@ tickGenerator.listen = function(){
       }
     });
   });
-}
+};
 
 tickGenerator.calcPeriodAverage = function(ticks, curTime, redisClient, mongoClient, callback){
   if(ticks.length > 0){
@@ -59,15 +59,12 @@ tickGenerator.calcPeriodAverage = function(ticks, curTime, redisClient, mongoCli
   }else{
     return false;
   }
-}
+};
 
 tickGenerator.storePeriodAverage = function(pair, timestamp, secondAverage, db, callback){
   var pricesCollection = db.collection("prices");
   var doc = {pair: pair, timestamp: timestamp, price: secondAverage};
   pricesCollection.insertOne(doc, function(res){
     callback();
-    if(conf.public.pubPrices){
-      gRedis.publish("prices", JSON.stringify(doc));
-    }
-  })
-}
+  });
+};

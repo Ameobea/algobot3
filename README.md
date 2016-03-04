@@ -8,3 +8,7 @@ This is a Spring bot; not some fucky winter bullshit.  This is the one that's go
 
 ==Breakdown==
 Main trading algo 'brain' that manages the rest of the algorithms.  
+
+zero-align y axis plugin for highcharts: https://github.com/PortfolioStrat/highcharts-zero-align-y-axes/archive/master.zip
+
+//TODO: Write installation guide for this when you set it up on your desktop

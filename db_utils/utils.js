@@ -30,10 +30,10 @@ dbUtil.mongoConnect = function(callback){
 dbUtil.flush = function(callback){
   dbUtil.mongoConnect(function(db){
     async.parallel([
-      function(){db.collection("ticks").drop(function(err, res){});},
-      function(){db.collection("smas").drop(function(err, res){});},
-      function(){db.collection("momentums").drop(function(err, res){});},
-      function(){db.collection("prices").drop(function(err, res){});}
+      function(){db.collection("ticks").drop(function(_err, _res){});},
+      function(){db.collection("smas").drop(function(_err, _res){});},
+      function(){db.collection("momentums").drop(function(_err, _res){});},
+      function(){db.collection("prices").drop(function(_err, _res){});}
     ], function(){
       db.close();
       callback();
@@ -53,6 +53,23 @@ dbUtil.init = function(callback){
         db.close();
         callback();
       });
+    });
+  });
+};
+
+dbUtil.fetchData = function(pair, type, props, range, callback){
+  dbUtil.mongoConnect(function(db){
+    var collection = db.collection(type);
+    props.pair = pair;
+    collection.find(props).sort({timestamp: -1}).limit(1).toArray(function(err, newestDoc){
+      if(newestDoc.length > 0){
+        props.timestamp = {$gte: newestDoc[0].timestamp - range};
+        collection.find(props).toArray(function(err, res){
+          callback(res);
+        });
+      }else{
+        callback([]);
+      }
     });
   });
 };

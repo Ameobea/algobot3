@@ -1,6 +1,8 @@
 "use strict";
 /*jslint node: true */
-var main_graph;
+/*jslint browser: true*/ /*global Highcharts, $*/
+var mainGraph;
+var momentumGraph;
 var buttonHTML;
 var oldHTML;
 var lastHTML;
@@ -9,7 +11,108 @@ var socket = new WebSocket("ws://<%= websocketIp %>");
 
 socket.onmessage = function(text){
   var parsed = JSON.parse(text.data);
-  console.log(parsed);
+  
+};
+
+var getData = function(pair, type, props, range, callback){
+  $.post("http://<%= ip %>" + "api/data/" + pair + "/" + type + "/" + range, {props: JSON.stringify(props)}, function(res){
+    callback(JSON.parse(res));
+  });
+};
+
+var resetAndUpdate = function(range, callback){
+  var pair = $("#pairInput").val();
+  
+  var averages = [];
+  var averageBoxes = [].slice.call($(".averageInput"));
+  averageBoxes.forEach(function(box){
+    averages.push(box.value);
+  });
+  var momentums = [];
+  var momentumBoxes = [].slice.call($(".momentumInput"));
+  momentumBoxes.forEach(function(box){
+    momentums.push(box.value);
+  });
+
+  var priceData = {type: "prices", data: []};
+  var averageData = {type: "smas", data: []};
+  var momentumData = {type: "momentums", data: []};
+
+  priceData.data.push(
+    new Promise(function(fulfill, reject){
+      getData(pair, "prices", {}, range, function(priceData){
+        fulfill(priceData);
+      });
+    })
+  );
+
+  averages.forEach(function(period){
+    averageData.data.push(
+      new Promise(function(fulfill, reject){
+        getData(pair, "smas", {period: parseInt(period)}, range, function(smaData){
+          fulfill(smaData);
+        });
+      })
+    );
+  });
+
+  momentums.forEach(function(params){
+    params = params.split(",");
+    momentumData.data.push(
+      new Promise(function(fulfill, reject){
+        getData(pair, "momentums", {averagePeriod: parseInt(params[0]), momentumPeriod: parseInt(params[1])}, range, function(momentumData){
+          fulfill(momentumData);
+        });
+      })
+    );
+  });
+
+  var finalPromiseArray = [];
+  [priceData, averageData, momentumData].forEach(function(promiseObject){
+    finalPromiseArray.push(
+      new Promise(function(fulfill, reject){
+        Promise.all(promiseObject.data).then(function(values){// evalulate one of the three promise arrays
+          fulfill(values);
+        });
+      })
+    )
+  });
+
+  Promise.all(finalPromiseArray).then(function(finalValues){ //prices, smas, momentums
+    console.log(finalValues);
+    clearChart(mainGraph);
+
+    finalValues[0].forEach(function(priceArray){
+      var priceSeries = {data: [], yAxis: "priceAverageAxis", name: "Price"};
+      priceArray.forEach(function(price){
+        priceSeries.data.push([price.timestamp * 10000, price.price]);
+      });
+      mainGraph.addSeries(priceSeries);
+    });
+
+    finalValues[1].forEach(function(smaArray){
+      var smaSeries = {data: [], yAxis: "priceAverageAxis", name: "Period " + smaArray[0].period + " Average"};
+      smaArray.forEach(function(sma){
+        smaSeries.data.push([sma.timestamp * 10000, sma.value]);
+      });
+      mainGraph.addSeries(smaSeries);
+    });
+
+    finalValues[2].forEach(function(momentumArray){
+      var momentumSeries = {data: [], yAxis: "momentumAxis", name: "Momentum", type: "area"};
+      momentumArray.forEach(function(momentum){
+        momentumSeries.data.push([momentum.timestamp * 10000, momentum.momentum]);
+      });
+      momentumGraph.addSeries(momentumSeries);
+    });
+  });
+};
+
+var clearChart = function(chart){
+  while(mainGraph.series.length > 0)
+    mainGraph.series[0].remove(true);
+  while(momentumGraph.series.length > 0)
+    momentumGraph.series[0].remove(true);
 };
 
 var setupConfigListeners = function(){
@@ -42,12 +145,17 @@ var setupConfigListeners = function(){
     $("#momentums").html(oldHTML + buttonHTML);
     setupConfigListeners();
   });
+
+  $("#update").off().click(function(){
+    resetAndUpdate(parseInt($("#timeRange").val()));
+  });
 };
 
 $(document).ready(function(){
-  main_graph = new Highcharts.Chart({
+  mainGraph = new Highcharts.Chart({
     chart: {
-      renderTo: 'mainChart'
+      renderTo: 'mainGraph',
+      zoomType: "x"
     },
     title: {
       text: 'Main Chart'
@@ -57,16 +165,53 @@ $(document).ready(function(){
       tickPixelInterval: 150,
       maxZoom: 20 * 1000
     },
+    plotOptions: {
+      series: {
+        animation: false
+      }
+    },
     yAxis: {
+      id: "priceAverageAxis",
       minPadding: 0.2,
       maxPadding: 0.2,
       title: {
-        text: 'Value',
+        text: 'Price',
         margin: 80
       }
     },
     series: [{
-      name: 'Prices',
+      name: 'Average Rate of Change',
+      data: []
+    }]
+  });
+
+  momentumGraph = new Highcharts.Chart({ //TODO: Change colors to varying shades of red/green if it's above/below 0
+    chart: {
+      renderTo: 'momentumGraph',
+      zoomType: "x"
+    },
+    title: {
+      text: 'Momentum Chart'
+    },
+    xAxis: {
+      type: 'datetime',
+      tickPixelInterval: 150,
+      maxZoom: 20 * 1000
+    },
+    plotOptions: {
+      series: {
+        animation: false
+      }
+    },
+    yAxis: {
+      id: "momentumAxis",
+      title: {
+        text: "Momentum",
+        margin: 80
+      }
+    },
+    series: [{
+      name: 'Average Rate of Change',
       data: []
     }]
   });

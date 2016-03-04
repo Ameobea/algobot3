@@ -8,7 +8,7 @@ router.get('/', function(req, res, next) {
 });
 
 router.get('/sources/:file', function(req, res, next){
-  res.render('sources/' + req.params.file.split(".")[0], {websocketIp: conf.private.websocketIp});
+  res.render('sources/' + req.params.file.split(".")[0], {websocketIp: conf.private.websocketIp, ip: conf.public.managerServerIP+":"+conf.public.managerServerPort+"/"});
 });
 
 router.get("/monitor", function(req, res, next){
