@@ -48,7 +48,7 @@ core.start = function(){
 
       conf.public.monitoredAveragePeriods.forEach(function(period){
         if(curAverages.pair[period]){
-          if((timestamp - curAverages.pair[period][0]) > period/4){ //calc average if the time that has passed > 1/4 its period
+          if((timestamp - curAverages.pair[period][0]) > period/conf.public.averageCalcResolution){ //calc average if the time that has passed > 1/4 its period
             toAverage.push(period);
           }
         }else{
@@ -68,7 +68,7 @@ core.start = function(){
         var toMomentum = [];
         conf.public.monitoredMomentumPeriods.forEach(function(period){
           if(curMomentums.pair && curMomentums.pair[averagePeriod] && curMomentums.pair[averagePeriod][period]){
-            if((timestamp - curMomentums.pair[averagePeriod][period][0]) > period/4){
+            if((timestamp - curMomentums.pair[averagePeriod][period][0]) > period/conf.public.momentumCalcResolution){
               toMomentum.push(period);
             }
           }else{

@@ -48,3 +48,6 @@ public.pubTicks = false;
 public.pubPrices = true;
 public.pubSmas = true;
 public.pubMomentums = true;
+
+public.averageCalcResolution = 6;
+public.MomentumCalcResolution = 8;

@@ -40,3 +40,18 @@ tick_data/*
 
 # database dump utility output
 utils/output
+
+#Netbeans/Java
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+nbactions.xml
+.nb-gradle/
+tick_recorder/TickRecorder/build.xml
+tick_recorder/TickRecorder/manifest.mf
+tick_recorder/TickRecorder/nbproject/
+
+#tick recorder private config
+tick_recorder/TickRecorder/src/tickrecorder/PrivateConfig.java

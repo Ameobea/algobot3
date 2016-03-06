@@ -31,7 +31,9 @@ var resetAndUpdate = function(range, callback){
   var momentums = [];
   var momentumBoxes = [].slice.call($(".momentumInput"));
   momentumBoxes.forEach(function(box){
-    momentums.push(box.value);
+    if(box.value != ""){
+      momentums.push(box.value);
+    }
   });
 
   var priceData = {type: "prices", data: []};
@@ -99,7 +101,7 @@ var resetAndUpdate = function(range, callback){
     });
 
     finalValues[2].forEach(function(momentumArray){
-      var momentumSeries = {data: [], yAxis: "momentumAxis", name: "Momentum", type: "area"};
+      var momentumSeries = {data: [], yAxis: "momentumAxis", name: "Period " + momentumArray[0].averagePeriod + "," + momentumArray[0].momentumPeriod + " Momentum", type: "area"};
       momentumArray.forEach(function(momentum){
         momentumSeries.data.push([momentum.timestamp * 10000, momentum.momentum]);
       });
