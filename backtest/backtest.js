@@ -209,7 +209,7 @@ backtest.readTickFile = function(pair, chunk, callback) {
 };
 
 backtest.publishTick = function(pair, chunk, chunkResult, curIndex, diff, callback, client) {
-  var tickObject = {pair: pair, timestamp: parseFloat(chunkResult[curIndex][0]), ask: parseFloat(chunkResult[curIndex][1]), bid: parseFloat(chunkResult[curIndex][2])};
+  var tickObject = {real: false, pair: pair, timestamp: parseFloat(chunkResult[curIndex][0]), ask: parseFloat(chunkResult[curIndex][1]), bid: parseFloat(chunkResult[curIndex][2])};
   client.publish("ticks", JSON.stringify(tickObject));
   setTimeout(function(){
     callback(chunk, chunkResult, curIndex + 1, diff, chunkResult[curIndex][0], pair, client);

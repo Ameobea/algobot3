@@ -23,7 +23,7 @@ tickGenerator.listen = function(){
     var redisListenClient = redis.createClient();
     var redisPublishClient = redis.createClient();
 
-    var prevTick; //last tick from previous average period
+    var prevTick = {}; //last tick from previous average period
     var storeQueue = []; //stores ticks waiting to be processed&stored
 
     redisListenClient.subscribe("ticks");
@@ -31,17 +31,25 @@ tickGenerator.listen = function(){
     var tick;
     redisListenClient.on("message", function(channel, message){
       tick = JSON.parse(message);
-      tick.price = (tick.bid+tick.ask)/2;
-      if(!prevTick){
-        prevTick = tick;
+      if(conf.public.storeRawTicks){
+        tickGenerator.storeTick(tick.pair, tick.timestamp, tick.bid, tick.ask, db, function(){});
       }
-      storeQueue.push(tick);
-      if(tick.timestamp > prevTick.timestamp+conf.public.priceResolution){ // it's time to calculate an average price
-        storeQueue.unshift(prevTick);
-        tickGenerator.calcPeriodAverage(storeQueue, tick.timestamp, redisPublishClient, db, function(average, prev){
-          prevTick = prev;
-          storeQueue = [];
-        });
+      if(conf.public.live == tick.real){// Ignore real ticks if we're backtesting, ignore backtests if we're live
+        tick.price = (tick.bid+tick.ask)/2;
+        if(!prevTick[tick.pair]){
+          prevTick[tick.pair] = tick;
+        }
+        if(!storeQueue[tick.pair]){
+          storeQueue[tick.pair] = [];
+        }
+        storeQueue[tick.pair].push(tick);
+        if(tick.timestamp > prevTick[tick.pair].timestamp+conf.public.priceResolution){ // it's time to calculate an average price
+          storeQueue[tick.pair].unshift(prevTick[tick.pair]);
+          tickGenerator.calcPeriodAverage(storeQueue[tick.pair], tick.timestamp, redisPublishClient, db, function(average, prev){
+            prevTick[tick.pair] = prev;
+            storeQueue[tick.pair] = [];
+          });
+        }
       }
     });
   });
@@ -68,3 +76,11 @@ tickGenerator.storePeriodAverage = function(pair, timestamp, secondAverage, db, 
     callback();
   });
 };
+
+tickGenerator.storeTick = function(pair, timestamp, bid, ask, db, callback){
+  var ticksCollection = db.collection("ticks");
+  var doc = {pair: pair, timestamp: timestamp, bid: bid, ask: ask};
+  ticksCollection.insertOne(doc, function(res){
+    callback();
+  });
+}

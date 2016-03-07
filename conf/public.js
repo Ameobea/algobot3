@@ -37,7 +37,7 @@ public.mongoDebug = false;
 public.momentumMultiplier = 10000000;
 
 //if true, raw ticks will be stored in the database for debug/analysis purposes.
-public.storeRawTicks = false;
+public.storeRawTicks = true;
 
 //which average/momentum periods are calculated by the bot and monitored for crosses
 public.monitoredAveragePeriods = [10,30,60,300,3000];
@@ -51,3 +51,6 @@ public.pubMomentums = true;
 
 public.averageCalcResolution = 6;
 public.MomentumCalcResolution = 8;
+
+//****If this is true, backtest ticks will be ignored.  If false, live ticks will be ignored.*****
+public.live = true;

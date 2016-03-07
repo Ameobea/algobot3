@@ -22,6 +22,7 @@ var getData = function(pair, type, props, range, callback){
 
 var resetAndUpdate = function(range, callback){
   var pair = $("#pairInput").val();
+  var loadTicks = $("#loadTicks").is(":checked");
   
   var averages = [];
   var averageBoxes = [].slice.call($(".averageInput"));
@@ -36,9 +37,20 @@ var resetAndUpdate = function(range, callback){
     }
   });
 
+  var tickData = {type: "ticks", data: []};
   var priceData = {type: "prices", data: []};
   var averageData = {type: "smas", data: []};
   var momentumData = {type: "momentums", data: []};
+
+  if(loadTicks){
+    tickData.data.push(
+      new Promise(function(fulfill, reject){
+        getData(pair, "ticks", {}, range, function(tickData){
+          fulfill(tickData);
+        });
+      })
+    );
+  }
 
   priceData.data.push(
     new Promise(function(fulfill, reject){
@@ -69,8 +81,13 @@ var resetAndUpdate = function(range, callback){
     );
   });
 
+  var toPromisify = [priceData, averageData, momentumData];
+  if(loadTicks){
+    toPromisify.push(tickData);
+  }
   var finalPromiseArray = [];
-  [priceData, averageData, momentumData].forEach(function(promiseObject){
+
+  toPromisify.forEach(function(promiseObject){
     finalPromiseArray.push(
       new Promise(function(fulfill, reject){
         Promise.all(promiseObject.data).then(function(values){// evalulate one of the three promise arrays
@@ -107,6 +124,19 @@ var resetAndUpdate = function(range, callback){
       });
       momentumGraph.addSeries(momentumSeries);
     });
+
+    if(finalValues[3]){
+      finalValues[3].forEach(function(tickArray){
+        var tickBidSeries = {data: [], yAxies: "priceAverageAxis", name: "Raw Bids"};
+        var tickAskSeries = {data: [], yAxies: "priceAverageAxis", name: "Raw Asks"};
+        tickArray.forEach(function(tick){
+          tickBidSeries.data.push([tick.timestamp * 10000, tick.bid]);
+          tickAskSeries.data.push([tick.timestamp * 10000, tick.ask]);
+        });
+        mainGraph.addSeries(tickBidSeries);
+        mainGraph.addSeries(tickAskSeries);
+      });
+    }
   });
 };
 
