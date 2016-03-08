@@ -55,3 +55,7 @@ tick_recorder/TickRecorder/nbproject/
 
 #tick recorder private config
 tick_recorder/TickRecorder/src/tickrecorder/PrivateConfig.java
+
+db_dumps/
+
+tick_recorder/tick_writer/output

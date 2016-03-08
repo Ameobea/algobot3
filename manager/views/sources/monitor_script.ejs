@@ -104,37 +104,43 @@ var resetAndUpdate = function(range, callback){
     finalValues[0].forEach(function(priceArray){
       var priceSeries = {data: [], yAxis: "priceAverageAxis", name: "Price"};
       priceArray.forEach(function(price){
-        priceSeries.data.push([price.timestamp * 10000, price.price]);
+        priceSeries.data.push([price.timestamp * 1000, price.price]);
       });
       mainGraph.addSeries(priceSeries);
     });
 
-    finalValues[1].forEach(function(smaArray){
-      var smaSeries = {data: [], yAxis: "priceAverageAxis", name: "Period " + smaArray[0].period + " Average"};
-      smaArray.forEach(function(sma){
-        smaSeries.data.push([sma.timestamp * 10000, sma.value]);
+      finalValues[1].forEach(function(smaArray){
+        if(smaArray.length > 0){
+          var smaSeries = {data: [], yAxis: "priceAverageAxis", name: "Period " + smaArray[0].period + " Average"};
+          smaArray.forEach(function(sma){
+            smaSeries.data.push([sma.timestamp * 1000, sma.value]);
+          });
+          mainGraph.addSeries(smaSeries);
+        }
       });
-      mainGraph.addSeries(smaSeries);
-    });
 
     finalValues[2].forEach(function(momentumArray){
-      var momentumSeries = {data: [], yAxis: "momentumAxis", name: "Period " + momentumArray[0].averagePeriod + "," + momentumArray[0].momentumPeriod + " Momentum", type: "area"};
-      momentumArray.forEach(function(momentum){
-        momentumSeries.data.push([momentum.timestamp * 10000, momentum.momentum]);
-      });
-      momentumGraph.addSeries(momentumSeries);
+      if(momentumArray.length > 0){
+        var momentumSeries = {data: [], yAxis: "momentumAxis", name: "Period " + momentumArray[0].averagePeriod + "," + momentumArray[0].momentumPeriod + " Momentum", type: "area"};
+        momentumArray.forEach(function(momentum){
+          momentumSeries.data.push([momentum.timestamp * 1000, momentum.momentum]);
+        });
+        momentumGraph.addSeries(momentumSeries);
+      }
     });
 
     if(finalValues[3]){
       finalValues[3].forEach(function(tickArray){
-        var tickBidSeries = {data: [], yAxies: "priceAverageAxis", name: "Raw Bids"};
-        var tickAskSeries = {data: [], yAxies: "priceAverageAxis", name: "Raw Asks"};
-        tickArray.forEach(function(tick){
-          tickBidSeries.data.push([tick.timestamp * 10000, tick.bid]);
-          tickAskSeries.data.push([tick.timestamp * 10000, tick.ask]);
-        });
-        mainGraph.addSeries(tickBidSeries);
-        mainGraph.addSeries(tickAskSeries);
+        if(tickArray.length > 0){
+          var tickBidSeries = {data: [], yAxies: "priceAverageAxis", name: "Raw Bids"};
+          var tickAskSeries = {data: [], yAxies: "priceAverageAxis", name: "Raw Asks"};
+          tickArray.forEach(function(tick){
+            tickBidSeries.data.push([tick.timestamp * 1000, tick.bid]);
+            tickAskSeries.data.push([tick.timestamp * 1000, tick.ask]);
+          });
+          mainGraph.addSeries(tickBidSeries);
+          mainGraph.addSeries(tickAskSeries);
+        }
       });
     }
   });

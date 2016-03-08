@@ -19,78 +19,82 @@ var core = exports;
 
 core.start = function(){
   dbUtil.mongoConnect(function(db){
-    var curPrice;
-    var lastPrice;         //          average period-\/
+    var curPrice = {};
+    var lastPrice = {};    //          average period-\/
     var lastAverages = {}; // lastAverages["usdcad"]["10"] = [timestamp, average]
     var lastMomentums = {};//lastMomentums["uscad"]["10"]["30"] = [timestamp, momentum]
     var curAverages = {};  //         average period-/\    /\-momentum period
     var curMomentums = {};
+    var toMomentum = [];
+    var toAverage = [];
+    var timestamp;
+    var priceUpdate;
     //TODO: periodically dump these to the database as a way of resuming mid-backtest etc.
 
     var redisClient = redis.createClient();
     redisClient.subscribe("prices");
 
     redisClient.on("message", function(channel, message){
-      var priceUpdate = JSON.parse(message);
+      priceUpdate = JSON.parse(message);
 
       var pair = priceUpdate.pair;
-      var timestamp = priceUpdate.timestamp;
+      timestamp = priceUpdate.timestamp;
 
-      if(!curAverages.pair){
-        curAverages.pair = {};
-        lastAverages.pair = {};
+      if(!curAverages[pair]){
+        curAverages[pair] = {};
+        lastAverages[pair] = {};
       }
 
-      lastPrice = curPrice;
-      curPrice = [priceUpdate.timestamp, priceUpdate.price];
+      if(curPrice[pair]){lastPrice[pair] = curPrice[pair];}
+      curPrice[pair] = [priceUpdate.timestamp, priceUpdate.price];
 
-      var toAverage = [];
+      toAverage = [];
 
-      conf.public.monitoredAveragePeriods.forEach(function(period){
-        if(curAverages.pair[period]){
-          if((timestamp - curAverages.pair[period][0]) > period/conf.public.averageCalcResolution){ //calc average if the time that has passed > 1/4 its period
-            toAverage.push(period);
+      conf.public.monitoredAveragePeriods.forEach(function(monitoredPeriod){
+        if(curAverages[pair][monitoredPeriod]){
+          if((timestamp - curAverages[pair][monitoredPeriod][0]) > monitoredPeriod/conf.public.averageCalcResolution){ //calc average if the time that has passed > 1/4 its period
+            toAverage.push(monitoredPeriod);
           }
         }else{
-          toAverage.push(period);
+          toAverage.push(monitoredPeriod);
         }
       });
 
       core.calcAverages(priceUpdate, toAverage, db, function(average, averagePeriod){
         averagePeriod = averagePeriod.toString();
 
-        if(curAverages.pair[averagePeriod]){
-          lastAverages.pair[averagePeriod] = curAverages[averagePeriod];
+        if(curAverages[pair][averagePeriod]){
+          lastAverages[pair][averagePeriod] = curAverages[averagePeriod];
         }
-        curAverages.pair[averagePeriod] = [timestamp, average];
+        curAverages[pair][averagePeriod] = [timestamp, average];
         // Averages updated
 
-        var toMomentum = [];
-        conf.public.monitoredMomentumPeriods.forEach(function(period){
-          if(curMomentums.pair && curMomentums.pair[averagePeriod] && curMomentums.pair[averagePeriod][period]){
-            if((timestamp - curMomentums.pair[averagePeriod][period][0]) > period/conf.public.momentumCalcResolution){
-              toMomentum.push(period);
+        toMomentum = [];
+        conf.public.monitoredMomentumPeriods.forEach(function(monitoredMomentumPeriod){
+          if(curMomentums[pair] && curMomentums[pair][averagePeriod] && curMomentums[pair][averagePeriod][monitoredMomentumPeriod]){
+            if((timestamp - curMomentums[pair][averagePeriod][monitoredMomentumPeriod][0]) > monitoredMomentumPeriod/conf.public.momentumCalcResolution){
+              toMomentum.push(monitoredMomentumPeriod);
             }
           }else{
-            toMomentum.push(period);
+            toMomentum.push(monitoredMomentumPeriod);
           }
         });
 
         core.calcMomentums(priceUpdate, parseInt(averagePeriod), toMomentum, db, function(momentum, momentumPeriod){
           momentumPeriod = momentumPeriod.toString();
 
-          if(!curMomentums.pair){
-            curMomentums.pair = {};
-            lastMomentums.pair = {};
+          if(!curMomentums[pair]){
+            curMomentums[pair] = {};
+            lastMomentums[pair] = {};
           }
-          if(!curMomentums.pair[averagePeriod]){
-            curMomentums.pair[averagePeriod] = {};
-            lastMomentums.pair[averagePeriod] = {};
+          if(!curMomentums[pair][averagePeriod]){
+            curMomentums[pair][averagePeriod] = {};
+            lastMomentums[pair][averagePeriod] = {};
           }
-          if(curMomentums.pair[averagePeriod][momentumPeriod]){
-            lastMomentums.pair[averagePeriod][momentumPeriod] = curMomentums.pair[averagePeriod][momentumPeriod];
+          if(curMomentums[pair][averagePeriod][momentumPeriod]){
+            lastMomentums[pair][averagePeriod][momentumPeriod] = curMomentums[pair][averagePeriod][momentumPeriod];
           }
-          curMomentums.pair[averagePeriod][momentumPeriod] = [timestamp, momentum];
+          curMomentums[pair][averagePeriod][momentumPeriod] = [timestamp, momentum];
           // Momentums updated
 
         });
@@ -101,14 +105,14 @@ core.start = function(){
 
 //Returns the period of the average that was calculated
 core.calcAverages = function(priceUpdate, averagePeriods, db, callback){
-  sma.averageMany(priceUpdate.pair, priceUpdate.timestamp, averagePeriods, db, function(average, averagePeriod){
-    callback(average, averagePeriod);
+  sma.averageMany(priceUpdate.pair, priceUpdate.timestamp, averagePeriods, db, function(average, pd){
+    callback(average, pd);
   });
 };
 
 
 core.calcMomentums = function(priceUpdate, averagePeriod, momentumPeriods, db, callback){
-  momentumCalc.calcMany(priceUpdate.pair, priceUpdate.timestamp, averagePeriod, momentumPeriods, db, function(momentum, momentumPeriod){
+  momentumCalc.calcMany(priceUpdate.pair, priceUpdate.timestamp, averagePeriod, momentumPeriods, db, function(momentumPeriod, momentum){
     callback(momentum, momentumPeriod);
   });
 };

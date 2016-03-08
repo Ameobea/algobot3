@@ -30,10 +30,10 @@ dbUtil.mongoConnect = function(callback){
 dbUtil.flush = function(callback){
   dbUtil.mongoConnect(function(db){
     async.parallel([
-      function(){db.collection("ticks").drop(function(_err, _res){});},
-      function(){db.collection("smas").drop(function(_err, _res){});},
-      function(){db.collection("momentums").drop(function(_err, _res){});},
-      function(){db.collection("prices").drop(function(_err, _res){});}
+      function(){db.collection("ticks").drop(function(err, res){});},
+      function(){db.collection("smas").drop(function(err, res){});},
+      function(){db.collection("momentums").drop(function(err, res){});},
+      function(){db.collection("prices").drop(function(err, res){});}
     ], function(){
       db.close();
       callback();

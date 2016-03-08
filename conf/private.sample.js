@@ -9,4 +9,5 @@ sensitive information that should not be committed.
 var private = exports;
 
 private.mongodbIP = "mongodb://localhost:27017";
-private.mongodbDatabase = "algobot3";
+private.mongodbDatabase = "bot3";
+private.websocketIp = "1.2.3.4:3596"
