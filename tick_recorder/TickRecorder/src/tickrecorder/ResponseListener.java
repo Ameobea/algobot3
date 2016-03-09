@@ -28,6 +28,7 @@ public class ResponseListener implements IO2GResponseListener {
                 response += "}";
                 TickRecorder.redisPublish("historicalPrices", response);
             }
+            //TODO: Send message if marketSnapshotReader.size() == 300, meaning we missed ticks.  Also handle in client code.
             TickRecorder.redisPublish("historicalPrices", "{\"status\": \"segmentDone\", \"lastTimestamp\": " + String.valueOf(lastTimestamp) + "}");
         }
     }

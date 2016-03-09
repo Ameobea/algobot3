@@ -27,19 +27,20 @@ var redisSubClient = redis.createClient();
 redisSubClient.subscribe("historicalPrices");
 
 var lastTick = false;
-var lastTriedTimestamp;
+var lastTriedEndPrice;
 
 redisSubClient.on("message", function(channel, message){
   var parsed = JSON.parse(message);
 
   if(parsed.error){
-    lastTriedTimestamp += 10000;
-    downloadData(lastTriedTimestamp, lastTriedTimestamp + 10000);
+    setTimeout(function(){
+      //here's to assuming there won't be a period where there are never more than 300 ticks in a 10-second period
+      downloadData(lastTriedEndPrice, lastTriedEndPrice + 10000);
+    }, downloadDelay);
   }else{
     if(parsed.status && parsed.status == "segmentDone"){
       setTimeout(function(){
-        //here's to assuming there won't be a period where there are never more than 300 ticks in a 10-second period
-        downloadData(parsed.lastTimestamp, parsed.lastTimestamp + 10000);
+        downloadData(lastTriedEndPrice, lastTriedEndPrice + 10000);
       }, downloadDelay);
     }else{
       if(lastTick && lastTick.timestamp < parsed.timestamp){
@@ -53,16 +54,16 @@ redisSubClient.on("message", function(channel, message){
       }else if(!lastTick){
         lastTick = parsed;
       }else{
-        
+        //we got bullshit data not actually in the range because the api is horrible
       }
     }
   }
 });
 
 var downloadData = function(start, end){
-  lastTriedTimestamp = start;
+  lastTriedEndPrice = end;
   //JSON format should be this: "{Pair: "USD/CAD", startTime: 1457300020.23, endTime: 1457300025.57, resolution: t1}"
-  var toSend = [{pair: formatPair(pair), startTime: start, endTime: end, resolution: "t1"}];
+  var toSend = [{pair: formatPair(pair), startTime: start + 1, endTime: end, resolution: "t1"}];
   redisPubclient.publish("priceRequests", JSON.stringify(toSend));
 };
 
