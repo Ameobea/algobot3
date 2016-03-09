@@ -74,7 +74,7 @@ public class TickRecorder {
         try{
             client = redisPool.getResource();
             redisPubsubListener redisListener = new redisPubsubListener(session);
-            client.subscribe(redisListener, "historyRequests");
+            client.subscribe(redisListener, "priceRequests");
         }finally{
             if(client != null){
                 client.close();

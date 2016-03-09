@@ -1,6 +1,8 @@
 package tickrecorder;
 
 import com.fxcore2.*;
+import java.util.Calendar;
+import java.math.BigDecimal;
 
 public class ResponseListener implements IO2GResponseListener {
     private String requestID;
@@ -11,22 +13,30 @@ public class ResponseListener implements IO2GResponseListener {
         O2GResponseReaderFactory readerFactory = session.getResponseReaderFactory();
         if(ogr.getType().toString() == "MARKET_DATA_SNAPSHOT"){
             O2GMarketDataSnapshotResponseReader marketSnapshotReader = readerFactory.createMarketDataSnapshotReader(ogr);
+            Long lastTimestamp = null;
+            
             for (int i = 0; i < marketSnapshotReader.size(); i++) {
-                String response = "{type: \"tick\", id: \"" + requestID;
-                response += "\", timestamp: ";
-                response += String.valueOf(marketSnapshotReader.getDate(i).getTimeInMillis() / 1000);
-                response += ", bid: ";
+                String response = "{\"type\": \"tick";//\", \"id\": \"" + requestID;
+                response += "\", \"timestamp\": ";
+                Calendar timestampCalendar = marketSnapshotReader.getDate(i);
+                lastTimestamp = timestampCalendar.getTimeInMillis();
+                response += String.valueOf(lastTimestamp);
+                response += ", \"bid\": ";
                 response += String.valueOf(marketSnapshotReader.getBid(i));
-                response += ", ask: ";
+                response += ", \"ask\": ";
                 response += String.valueOf(marketSnapshotReader.getAsk(i));
                 response += "}";
                 TickRecorder.redisPublish("historicalPrices", response);
             }
+            TickRecorder.redisPublish("historicalPrices", "{\"status\": \"segmentDone\", \"lastTimestamp\": " + String.valueOf(lastTimestamp) + "}");
         }
     }
 
     public void onRequestFailed(String string, String err){
         System.out.println("Request failed with error " + err);
+        if(err.contains("unsupported scope")){
+            TickRecorder.redisPublish("historicalPrices", "{\"error\": \"error: no ticks found in that range.\"}");
+        }
     }
 
     public void onTablesUpdates(O2GResponse ogr){

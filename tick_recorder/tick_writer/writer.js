@@ -35,6 +35,7 @@ redisClient.on("message", function(channel, message){
               fulfill();
             });
           }else{
+            existingFiles[parsed.pair] = true;
             fulfill();
           }
         });
