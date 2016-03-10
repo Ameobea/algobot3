@@ -16,7 +16,7 @@ var conf = require("../../conf/conf");
 
 //unix timestamp format.
 var pair = "usdcad"; //like "usdcad"
-var startTime = 1451887200 * 1000; //like 1393826400 * 1000
+var startTime = 1451982555746; //like 1393826400 * 1000
 var endTime = 1457244000 * 1000;
 
 //time between data requests
@@ -26,7 +26,7 @@ var redisPubclient = redis.createClient();
 var redisSubClient = redis.createClient();
 redisSubClient.subscribe("historicalPrices");
 
-var lastTick = false;
+var lastTick = {timestamp: startTime};
 var lastTriedEndPrice;
 
 redisSubClient.on("message", function(channel, message){
@@ -37,7 +37,7 @@ redisSubClient.on("message", function(channel, message){
       //here's to assuming there won't be a period where there are never more than 300 ticks in a 10-second period
       downloadData(lastTriedEndPrice, lastTriedEndPrice + 10000);
     }, downloadDelay);
-  }else{
+  }else{//TODO: Make thing in java code that sends a message meaning that more than 300 ticks were sent and handle it here.
     if(parsed.status && parsed.status == "segmentDone"){
       setTimeout(function(){
         downloadData(lastTriedEndPrice, lastTriedEndPrice + 10000);

@@ -14,17 +14,15 @@ var conf = require("../conf/conf");
 var dbUtil = require("../db_utils/utils");
 var sma = require("../algos/average/sma");
 var momentumCalc = require("../algos/momentum");
+var maxMin = require("../algos/maximaMinima");
 
 var core = exports;
 
+var curAverages = {};
+var curMomentums = {};
+
 core.start = function(){
   dbUtil.mongoConnect(function(db){
-    var curPrice = {};
-    var lastPrice = {};    //          average period-\/
-    var lastAverages = {}; // lastAverages["usdcad"]["10"] = [timestamp, average]
-    var lastMomentums = {};//lastMomentums["uscad"]["10"]["30"] = [timestamp, momentum]
-    var curAverages = {};  //         average period-/\    /\-momentum period
-    var curMomentums = {};
     var toMomentum = [];
     var toAverage = [];
     var timestamp;
@@ -42,11 +40,7 @@ core.start = function(){
 
       if(!curAverages[pair]){
         curAverages[pair] = {};
-        lastAverages[pair] = {};
       }
-
-      if(curPrice[pair]){lastPrice[pair] = curPrice[pair];}
-      curPrice[pair] = [priceUpdate.timestamp, priceUpdate.price];
 
       toAverage = [];
 
@@ -61,12 +55,8 @@ core.start = function(){
       });
 
       core.calcAverages(priceUpdate, toAverage, db, function(average, averagePeriod){
-        averagePeriod = averagePeriod.toString();
-
-        if(curAverages[pair][averagePeriod]){
-          lastAverages[pair][averagePeriod] = curAverages[averagePeriod];
-        }
-        curAverages[pair][averagePeriod] = [timestamp, average];
+        maxMin.calc(pair, curAverages, averagePeriod, average, timestamp, db);
+        core.storeLocalAverages(pair, averagePeriod, timestamp, average);
         // Averages updated
 
         toMomentum = [];
@@ -81,20 +71,7 @@ core.start = function(){
         });
 
         core.calcMomentums(priceUpdate, parseInt(averagePeriod), toMomentum, db, function(momentum, momentumPeriod){
-          momentumPeriod = momentumPeriod.toString();
-
-          if(!curMomentums[pair]){
-            curMomentums[pair] = {};
-            lastMomentums[pair] = {};
-          }
-          if(!curMomentums[pair][averagePeriod]){
-            curMomentums[pair][averagePeriod] = {};
-            lastMomentums[pair][averagePeriod] = {};
-          }
-          if(curMomentums[pair][averagePeriod][momentumPeriod]){
-            lastMomentums[pair][averagePeriod][momentumPeriod] = curMomentums[pair][averagePeriod][momentumPeriod];
-          }
-          curMomentums[pair][averagePeriod][momentumPeriod] = [timestamp, momentum];
+          core.storeLocalMomentums(pair, averagePeriod, momentumPeriod, timestamp, momentum);
           // Momentums updated
 
         });
@@ -105,6 +82,7 @@ core.start = function(){
 
 //Returns the period of the average that was calculated
 core.calcAverages = function(priceUpdate, averagePeriods, db, callback){
+  //TODO: Don't do accurate calculations for averages where the period is large enough to make the added accuracy negligable
   sma.averageMany(priceUpdate.pair, priceUpdate.timestamp, averagePeriods, db, function(average, pd){
     callback(average, pd);
   });
@@ -116,3 +94,20 @@ core.calcMomentums = function(priceUpdate, averagePeriod, momentumPeriods, db, c
     callback(momentum, momentumPeriod);
   });
 };
+
+core.storeLocalAverages = function(pair_, averagePeriod_, timestamp_, average_){
+  averagePeriod_ = averagePeriod_.toString();
+  curAverages[pair_][averagePeriod_] = [timestamp_, average_];
+}
+
+core.storeLocalMomentums = function(pair_, averagePeriod_, momentumPeriod_, timestamp_, momentum_){
+  momentumPeriod_ = momentumPeriod_.toString();
+
+  if(!curMomentums[pair_]){
+    curMomentums[pair_] = {};
+  }
+  if(!curMomentums[pair_][averagePeriod_]){
+    curMomentums[pair_][averagePeriod_] = {};
+  }
+  curMomentums[pair_][averagePeriod_][momentumPeriod_] = [timestamp_, momentum_];
+}

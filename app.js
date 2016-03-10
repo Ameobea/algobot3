@@ -10,6 +10,8 @@ var dbUtils = require("./db_utils/utils");
 dbUtils.init(function(){
   gRedis = redis.createClient(); //global redis client
 
+  dbUtils.indexIterator(false, conf.public.mongoIndexRebuildPeriod);
+
   manager.start(conf.public.managerServerPort);
   tickGenerator.listen();
   core.start();

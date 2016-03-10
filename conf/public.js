@@ -41,9 +41,10 @@ publicConfig.momentumMultiplier = 10000000;
 //if true, raw ticks will be stored in the database for debug/analysis purposes.
 publicConfig.storeRawTicks = true;
 
+//TODO: Teach the bot how to pick these itself
 //which average/momentum periods are calculated by the bot and monitored for crosses
-publicConfig.monitoredAveragePeriods = [10,30,60,300,3000];
-publicConfig.monitoredMomentumPeriods = [60,120,300,1000];
+publicConfig.monitoredAveragePeriods = [30,60,300,3000,5000,10000];
+publicConfig.monitoredMomentumPeriods = [15,30,60,120,300,1000,3000,5000];
 
 //set these to true to enable calculations to be sent through redis pusub
 publicConfig.pubTicks = false;
@@ -51,8 +52,10 @@ publicConfig.pubPrices = true;
 publicConfig.pubSmas = true;
 publicConfig.pubMomentums = true;
 
-publicConfig.averageCalcResolution = 6;
-publicConfig.momentumCalcResolution = 8;
+publicConfig.averageCalcResolution = 8;
+publicConfig.momentumCalcResolution = 16;
 
 //****If this is true, backtest ticks will be ignored.  If false, live ticks will be ignored.*****
 publicConfig.live = true;
+
+publicConfig.mongoIndexRebuildPeriod = 600 * 1000;

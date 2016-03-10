@@ -31,24 +31,27 @@ tickGenerator.listen = function(){
     var tick;
     redisListenClient.on("message", function(channel, message){
       tick = JSON.parse(message);
-      if(conf.public.storeRawTicks){
-        tickGenerator.storeTick(tick.pair, tick.timestamp, tick.bid, tick.ask, db, function(){});
-      }
-      if(conf.public.live == tick.real){// Ignore real ticks if we're backtesting, ignore backtests if we're live
-        tick.price = (tick.bid+tick.ask)/2;
-        if(!prevTick[tick.pair]){
-          prevTick[tick.pair] = tick;
+
+      if(prevTick.timestamp < tick.timestamp){ //only allow sane ticks through.
+        if(conf.public.storeRawTicks){
+          tickGenerator.storeTick(tick.pair, tick.timestamp, tick.bid, tick.ask, db, function(){});
         }
-        if(!storeQueue[tick.pair]){
-          storeQueue[tick.pair] = [];
-        }
-        storeQueue[tick.pair].push(tick);
-        if(tick.timestamp > prevTick[tick.pair].timestamp+conf.public.priceResolution){ // it's time to calculate an average price
-          storeQueue[tick.pair].unshift(prevTick[tick.pair]);
-          tickGenerator.calcPeriodAverage(storeQueue[tick.pair], tick.timestamp, redisPublishClient, db, function(average, prev){
-            prevTick[tick.pair] = prev;
+        if(conf.public.live == tick.real){// Ignore real ticks if we're backtesting, ignore backtests if we're live
+          tick.price = (tick.bid+tick.ask)/2;
+          if(!prevTick[tick.pair]){
+            prevTick[tick.pair] = tick;
+          }
+          if(!storeQueue[tick.pair]){
             storeQueue[tick.pair] = [];
-          });
+          }
+          storeQueue[tick.pair].push(tick);
+          if(tick.timestamp > prevTick[tick.pair].timestamp+conf.public.priceResolution){ // it's time to calculate an average price
+            storeQueue[tick.pair].unshift(prevTick[tick.pair]);
+            tickGenerator.calcPeriodAverage(storeQueue[tick.pair], tick.timestamp, redisPublishClient, db, function(average, prev){
+              prevTick[tick.pair] = prev;
+              storeQueue[tick.pair] = [];
+            });
+          }
         }
       }
     });

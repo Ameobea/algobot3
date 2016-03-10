@@ -7,12 +7,12 @@ var buttonHTML;
 var oldHTML;
 var lastHTML;
 
-var socket = new WebSocket("ws://<%= websocketIp %>");
+// var socket = new WebSocket("ws://<%= websocketIp %>");
 
-socket.onmessage = function(text){
-  var parsed = JSON.parse(text.data);
+// socket.onmessage = function(text){
+//   var parsed = JSON.parse(text.data);
   
-};
+// };
 
 var getData = function(pair, type, props, range, callback){
   $.post("http://<%= ip %>" + "api/data/" + pair + "/" + type + "/" + range, {props: JSON.stringify(props)}, function(res){
@@ -21,6 +21,8 @@ var getData = function(pair, type, props, range, callback){
 };
 
 var resetAndUpdate = function(range, callback){
+  clearChart(mainGraph);
+
   var pair = $("#pairInput").val();
   var loadTicks = $("#loadTicks").is(":checked");
   
@@ -97,9 +99,90 @@ var resetAndUpdate = function(range, callback){
     )
   });
 
-  Promise.all(finalPromiseArray).then(function(finalValues){ //prices, smas, momentums
-    console.log(finalValues);
-    clearChart(mainGraph);
+  drawSeries(finalPromiseArray).then(function(){
+    var stripePeriod = parseInt($("#maxMinStripePeriod").val());
+    var stripeCompPeriods = $("#maxMinStriptCompPeriod").val();
+    stripeCompPeriods = stripeCompPeriods.split(",");
+    var realStripeCompPds = [];
+    stripeCompPeriods.forEach(function(pd2){
+      realStripeCompPds.push(parseInt(pd2));
+    });
+    var drawDownBands = $("#drawDownBands").is(":checked");
+    var drawUpBands =   $("#drawUpBands").is(":checked");
+    drawCrossBands(pair, range, stripePeriod, realStripeCompPds, drawDownBands, drawUpBands);
+  });
+};
+
+var mapColors = function(compPeriods){
+  var colorArray = [{}, {}];
+
+  compPeriods.forEach(function(compPeriod, index){
+    var lightness = 100-(((index + 1)/compPeriods.length)*50);
+    colorArray[0][compPeriod.toString()] = "hsl(360, 100%, " + lightness.toString() + "%)";
+  });
+
+  compPeriods.forEach(function(compPeriod, index){
+    var lightness = 100-(((index + 1)/compPeriods.length)*50);
+    colorArray[1][compPeriod.toString()] = "hsl(240, 100%, " + lightness.toString() + "%)";
+  });
+
+  return colorArray;
+}
+
+var drawCrossBands = function(pair, range, stripePeriod, stripeCompPeriods, drawDownBands, drawUpBands){
+  var params = {period: stripePeriod, $or: []};
+  stripeCompPeriods.forEach(function(pd){
+    params.$or.push({compPeriod: pd});
+  });
+
+  getData(pair, "smaCrosses", params, range, function(crossData){
+    var isCrossed = crossData[0].direction; //false = down, true = up
+    var includedCompPeriods = [];
+
+    crossData.forEach(function(cross){
+      if(includedCompPeriods.indexOf(cross.compPeriod) == -1){
+        includedCompPeriods.push(cross.compPeriod);
+      }
+    });
+
+    includedCompPeriods.sort().reverse();
+    var colorsMap = mapColors(includedCompPeriods);
+
+    crossData.forEach(function(cross, index){
+      pairIndex = false;
+
+      for(var i=index+1;i<crossData.length;i++){
+        if(crossData[i].compPeriod == cross.compPeriod){
+          var pairIndex = i;
+          break;
+        }
+      }
+
+      if(pairIndex && cross.period == stripePeriod && index < crossData.length-1 && stripeCompPeriods.indexOf(cross.compPeriod) != -1){
+        if(cross.direction && drawUpBands){//it's a cross up
+          mainGraph.xAxis[0].addPlotBand({
+            from: cross.timestamp * 1000,
+            to: crossData[pairIndex].timestamp * 1000,
+            color: colorsMap[1][cross.compPeriod.toString()],
+            id: "band",
+            zIndex: -1*cross.compPeriod
+          });
+        }else if(!cross.direction && drawDownBands){//it's a cross down
+          mainGraph.xAxis[0].addPlotBand({
+            from: cross.timestamp * 1000,
+            to: crossData[pairIndex].timestamp * 1000,
+            color: colorsMap[0][cross.compPeriod.toString()],
+            id: "band",
+            zIndex: -1*cross.compPeriod
+          });
+        }
+      }
+    });
+  });
+}
+
+var drawSeries = function(finalPromiseArray_){
+  return Promise.all(finalPromiseArray_).then(function(finalValues){ //prices, smas, momentums
 
     finalValues[0].forEach(function(priceArray){
       var priceSeries = {data: [], yAxis: "priceAverageAxis", name: "Price"};
@@ -144,13 +227,14 @@ var resetAndUpdate = function(range, callback){
       });
     }
   });
-};
+}
 
 var clearChart = function(chart){
   while(mainGraph.series.length > 0)
     mainGraph.series[0].remove(true);
   while(momentumGraph.series.length > 0)
     momentumGraph.series[0].remove(true);
+  mainGraph.xAxis[0].removePlotBand("band");
 };
 
 var setupConfigListeners = function(){
