@@ -14,6 +14,7 @@ var maxMin = exports;
 
 //crossStatuses[pair][period][compPeriod] = true||false where true = used to be higher and false = used to be lower
 var crossStatuses = {};
+//TODO: Change so that instead of watching for actual crosses, watch the distance between two smas.
 
 maxMin.initCrossStatuses = function(pair, period, compPeriod, status){
   if(!crossStatuses[pair]){

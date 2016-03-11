@@ -32,7 +32,7 @@ tickGenerator.listen = function(){
     redisListenClient.on("message", function(channel, message){
       tick = JSON.parse(message);
 
-      if(prevTick.timestamp < tick.timestamp){ //only allow sane ticks through.
+      if(!prevTick.timestamp || prevTick.timestamp < tick.timestamp){ //only allow sane ticks through.
         if(conf.public.storeRawTicks){
           tickGenerator.storeTick(tick.pair, tick.timestamp, tick.bid, tick.ask, db, function(){});
         }

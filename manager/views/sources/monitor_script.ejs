@@ -7,12 +7,7 @@ var buttonHTML;
 var oldHTML;
 var lastHTML;
 
-// var socket = new WebSocket("ws://<%= websocketIp %>");
-
-// socket.onmessage = function(text){
-//   var parsed = JSON.parse(text.data);
-  
-// };
+//TODO: Add in live updating.
 
 var getData = function(pair, type, props, range, callback){
   $.post("http://<%= ip %>" + "api/data/" + pair + "/" + type + "/" + range, {props: JSON.stringify(props)}, function(res){
@@ -101,15 +96,26 @@ var resetAndUpdate = function(range, callback){
 
   drawSeries(finalPromiseArray).then(function(){
     var stripePeriod = parseInt($("#maxMinStripePeriod").val());
-    var stripeCompPeriods = $("#maxMinStriptCompPeriod").val();
-    stripeCompPeriods = stripeCompPeriods.split(",");
-    var realStripeCompPds = [];
-    stripeCompPeriods.forEach(function(pd2){
-      realStripeCompPds.push(parseInt(pd2));
+
+    var compUpPeriods = $("#compUpPeriods").val();
+    var compDnPeriods = $("#compDownPeriods").val();
+    compUpPeriods = compUpPeriods.split(",");
+    compDnPeriods = compDnPeriods.split(",");
+
+    var realCompUpPeriods = [];
+    var realCompDnPeriods = [];
+
+    compUpPeriods.forEach(function(pd2){
+      realCompUpPeriods.push(parseInt(pd2));
     });
+    compDnPeriods.forEach(function(pd2){
+      realCompDnPeriods.push(parseInt(pd2));
+    });
+
     var drawDownBands = $("#drawDownBands").is(":checked");
     var drawUpBands =   $("#drawUpBands").is(":checked");
-    drawCrossBands(pair, range, stripePeriod, realStripeCompPds, drawDownBands, drawUpBands);
+
+    drawCrossBands(pair, range, stripePeriod, realCompUpPeriods, realCompDnPeriods, drawDownBands, drawUpBands);
   });
 };
 
@@ -129,55 +135,64 @@ var mapColors = function(compPeriods){
   return colorArray;
 }
 
-var drawCrossBands = function(pair, range, stripePeriod, stripeCompPeriods, drawDownBands, drawUpBands){
+var drawCrossBands = function(pair, range, stripePeriod, compUpPeriods, compDownPeriods, drawDownBands, drawUpBands){
+  //TODO: Make it so that you can draw up bands for one compPeriod and down bands for a different compPeriod
+  //TODO: See if you can make them transluscent or something better than using zindexes
   var params = {period: stripePeriod, $or: []};
-  stripeCompPeriods.forEach(function(pd){
+
+  compUpPeriods.forEach(function(pd){
+    params.$or.push({compPeriod: pd});
+  });
+
+  compDownPeriods.forEach(function(pd){
     params.$or.push({compPeriod: pd});
   });
 
   getData(pair, "smaCrosses", params, range, function(crossData){
-    var isCrossed = crossData[0].direction; //false = down, true = up
-    var includedCompPeriods = [];
+    if(crossData.length > 0){
+      var isCrossed = crossData[0].direction; //false = down, true = up
+      var includedCompPeriods = [];
 
-    crossData.forEach(function(cross){
-      if(includedCompPeriods.indexOf(cross.compPeriod) == -1){
-        includedCompPeriods.push(cross.compPeriod);
-      }
-    });
-
-    includedCompPeriods.sort().reverse();
-    var colorsMap = mapColors(includedCompPeriods);
-
-    crossData.forEach(function(cross, index){
-      pairIndex = false;
-
-      for(var i=index+1;i<crossData.length;i++){
-        if(crossData[i].compPeriod == cross.compPeriod){
-          var pairIndex = i;
-          break;
+      crossData.forEach(function(cross){
+        if(includedCompPeriods.indexOf(cross.compPeriod) == -1){
+          includedCompPeriods.push(cross.compPeriod);
         }
-      }
+      });
 
-      if(pairIndex && cross.period == stripePeriod && index < crossData.length-1 && stripeCompPeriods.indexOf(cross.compPeriod) != -1){
-        if(cross.direction && drawUpBands){//it's a cross up
-          mainGraph.xAxis[0].addPlotBand({
-            from: cross.timestamp * 1000,
-            to: crossData[pairIndex].timestamp * 1000,
-            color: colorsMap[1][cross.compPeriod.toString()],
-            id: "band",
-            zIndex: -1*cross.compPeriod
-          });
-        }else if(!cross.direction && drawDownBands){//it's a cross down
-          mainGraph.xAxis[0].addPlotBand({
-            from: cross.timestamp * 1000,
-            to: crossData[pairIndex].timestamp * 1000,
-            color: colorsMap[0][cross.compPeriod.toString()],
-            id: "band",
-            zIndex: -1*cross.compPeriod
-          });
+      includedCompPeriods.sort().reverse();
+      var colorsMap = mapColors(includedCompPeriods);
+
+      crossData.forEach(function(cross, index){
+        pairIndex = false;
+
+        for(var i=index+1;i<crossData.length;i++){
+          if(crossData[i].compPeriod == cross.compPeriod){
+            var pairIndex = i;
+            break;
+          }
         }
-      }
-    });
+
+        if(pairIndex && cross.period == stripePeriod && index < crossData.length-1){
+          if(cross.direction && drawUpBands && compUpPeriods.indexOf(cross.compPeriod) != -1){//it's a cross up
+            mainGraph.xAxis[0].addPlotBand({
+              from: cross.timestamp * 1000,
+              to: crossData[pairIndex].timestamp * 1000,
+              color: colorsMap[1][cross.compPeriod.toString()],
+              id: "band",
+              zIndex: -1*cross.compPeriod
+            });
+          }else if(!cross.direction && drawDownBands && compDownPeriods.indexOf(cross.compPeriod) != -1){//it's a cross down
+            mainGraph.xAxis[0].addPlotBand({
+              from: cross.timestamp * 1000,
+              to: crossData[pairIndex].timestamp * 1000,
+              color: colorsMap[0][cross.compPeriod.toString()],
+              id: "band",
+              zIndex: -1*cross.compPeriod
+            });
+          }
+        }
+      });
+    }
   });
 }
 

@@ -9,7 +9,7 @@ in conjunction with the tick_recorder java application which serves as the link 
 Requests are made to that application over redis which are then procesed, sent to the FXCM servers,
 and sent back as a redis reply.  
 */
-var redis = require("redis");
+var redis = require("redis"); //TODO: Intelligently skip weekends
 var fs = require("fs");
 
 var conf = require("../../conf/conf");
@@ -30,6 +30,7 @@ var lastTick = {timestamp: startTime};
 var lastTriedEndPrice;
 
 redisSubClient.on("message", function(channel, message){
+  console.log(message);
   var parsed = JSON.parse(message);
 
   if(parsed.error){
