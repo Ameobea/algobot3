@@ -16,7 +16,7 @@ public class ResponseListener implements IO2GResponseListener {
             Long lastTimestamp = null;
             
             for (int i = 0; i < marketSnapshotReader.size(); i++) {
-                String response = "{\"type\": \"tick";//\", \"id\": \"" + requestID;
+                String response = "{\"type\": \"tick\", \"id\": \"" + requestID;
                 response += "\", \"timestamp\": ";
                 Calendar timestampCalendar = marketSnapshotReader.getDate(i);
                 lastTimestamp = timestampCalendar.getTimeInMillis();
@@ -33,10 +33,10 @@ public class ResponseListener implements IO2GResponseListener {
         }
     }
 
-    public void onRequestFailed(String string, String err){
+    public void onRequestFailed(String requestID, String err){
         System.out.println("Request failed with error " + err);
         if(err.contains("unsupported scope")){
-            TickRecorder.redisPublish("historicalPrices", "{\"error\": \"error: no ticks found in that range.\"}");
+            TickRecorder.redisPublish("historicalPrices", "{\"error\": \"error: no ticks found in that range.\", \"id\": \"" + requestID + "\"}");
         }
     }
 

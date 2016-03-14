@@ -17,7 +17,7 @@ public class TickRecorder {
         ResponseListener responseListener = new ResponseListener(session);
         session.subscribeResponse(responseListener);
         
-        subscribeToPriceUpdates(offersTable);
+        //subscribeToPriceUpdates(offersTable);
         
         setupRedis(session);
         
@@ -84,6 +84,7 @@ public class TickRecorder {
     
     public static void redisPublish(String channel, String message){
         Jedis client = null;
+        //System.out.println("Sending redis message on " + channel + ": " + message);
         try{
             client = redisPool.getResource();
             client.publish(channel, message);

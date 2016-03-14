@@ -10,7 +10,7 @@ public class HistoryDownloader {
         O2GTimeframe timeFrame = timeFrames.get(resolution);
         O2GRequest marketDataRequest = factory.createMarketDataSnapshotRequestInstrument(pair, timeFrame, 300);
         factory.fillMarketDataSnapshotRequestTime(marketDataRequest, startTime, endTime, true);
-        //TickRecorder.redisPublish("historicalPrices", "{type: \"chunkID\", id: \"" + marketDataRequest.getRequestId() + "\"}");
+        TickRecorder.redisPublish("historicalPrices", "{\"type\": \"chunkID\", \"id\": \"" + marketDataRequest.getRequestId() + "\"}");
         session.sendRequest(marketDataRequest);
     }
 }

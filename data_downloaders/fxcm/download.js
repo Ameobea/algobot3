@@ -16,7 +16,7 @@ var conf = require("../../conf/conf");
 
 //unix timestamp format.
 var pair = "usdcad"; //like "usdcad"
-var startTime = 1451982555746; //like 1393826400 * 1000
+var startTime = 1451887201152; //like 1393826400 * 1000
 var endTime = 1457244000 * 1000;
 
 //time between data requests
@@ -28,27 +28,41 @@ redisSubClient.subscribe("historicalPrices");
 
 var lastTick = {timestamp: startTime};
 var lastTriedEndPrice;
+var waitingForData = false;
+var lastChunkIDS = [];
+var curStart;
+var curEnd;
 
 redisSubClient.on("message", function(channel, message){
-  console.log(message);
+  //console.log(message);
   var parsed = JSON.parse(message);
 
   if(parsed.error){
     setTimeout(function(){
+      lastChunkIDS.push(parsed.id);
       //here's to assuming there won't be a period where there are never more than 300 ticks in a 10-second period
       downloadData(lastTriedEndPrice, lastTriedEndPrice + 10000);
     }, downloadDelay);
+  }else if(parsed.type && parsed.type == "chunkID"){// new segment
+    responseWaiterCaller(parsed.id);
+    console.log("New chunk id: " + parsed.id);
   }else{//TODO: Make thing in java code that sends a message meaning that more than 300 ticks were sent and handle it here.
-    if(parsed.status && parsed.status == "segmentDone"){
+    if(parsed.status && parsed.status == "segmentDone"){ //end of current segment
       setTimeout(function(){
         downloadData(lastTriedEndPrice, lastTriedEndPrice + 10000);
       }, downloadDelay);
-    }else{
+    }else{ //tick
       if(lastTick && lastTick.timestamp < parsed.timestamp){
         if(parsed.timestamp < endTime){
+          if(lastChunkIDS.indexOf(parsed.id) == -1){
+            lastChunkIDS.push(parsed.id);
+          }
+          if(lastChunkIDS.length > 23){ //trim last chunks so we don't overload memory
+            lastChunkIDS.shift();
+          }
           lastTick = parsed;
           storeTick(parsed);
-        }else{
+        }else{//all done
           console.log("All ticks in range stored.");
           process.exit(0);
         } 
@@ -61,7 +75,23 @@ redisSubClient.on("message", function(channel, message){
   }
 });
 
+//if no reply from server in 1.5 seconds, assume it's not coming and start over.
+var responseWaiter = function(chunkID){
+  if(lastChunkIDS.indexOf(chunkID) == -1){ //if we haven't recieved a tick from the current segment yet
+    console.log(chunkID + " not in array; Resending data request...");
+    downloadData(curStart, curEnd); //re-send request for that segment
+  }
+};
+
+var responseWaiterCaller = function(oldID){
+  setTimeout(function(){
+    responseWaiter(oldID);
+  }, 1500);
+};
+
 var downloadData = function(start, end){
+  curStart = start;
+  curEnd = end;
   lastTriedEndPrice = end;
   //JSON format should be this: "{Pair: "USD/CAD", startTime: 1457300020.23, endTime: 1457300025.57, resolution: t1}"
   var toSend = [{pair: formatPair(pair), startTime: start + 1, endTime: end, resolution: "t1"}];
