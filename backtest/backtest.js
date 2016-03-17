@@ -62,7 +62,10 @@ backtest.live = function(pair, startTime){
           var indexData = data.split('\n');
           for(var i=1;i<indexData.length;i++){
             if(indexData[i].length > 3){
-              result.push(indexData[i].split(','));
+              var temp = indexData[i].split(',');
+              temp[1] *= conf.public.backtestTimestampMultiplier;
+              temp[2] *= conf.public.backtestTimestampMultiplier;
+              result.push(temp);
             }
           }
           for(var i=0;i<result.length;i++){
@@ -76,7 +79,9 @@ backtest.live = function(pair, startTime){
             var chunkData = data.split('\n');
             for(var i=1;i<chunkData.length;i++){
               if(chunkData[i].length > 3){
-                chunkResult.push(chunkData[i].split(','));
+                var temp = chunkData[i].split(',');
+                temp[0] *= conf.public.backtestTimestampMultiplier;
+                chunkResult.push(temp);
               }
             }
             var curIndex;
@@ -106,7 +111,9 @@ backtest.liveSend = function(chunk, chunkResult, curIndex, diff, oldTime, pair, 
     var chunkFile = backtest.readTickFile(pair, chunk, function(err, data){
       for(var i=1;i<chunkData.length;i++){
         if(chunkData[i].length > 3){
-          chunkResult.push(chunkData[i].split(','));
+          var temp = chunkData[i].split(',');
+          temp[0] *= conf.public.backtestTimestampMultiplier;
+          chunkResult.push(temp);
         }
       }
     });
@@ -128,6 +135,7 @@ backtest.liveSend = function(chunk, chunkResult, curIndex, diff, oldTime, pair, 
   }
 };
 
+//TODO: Switch to event-driven backtesting i.e. send ticks as fast as the bot can process them.
 backtest.fast = function(pair, startTime, diff){
   backtest.checkIfRunning(pair, function(running){
     if(!running){
@@ -139,7 +147,10 @@ backtest.fast = function(pair, startTime, diff){
           var indexData = data.split('\n');
           for(var i=1;i<indexData.length;i++){
             if(indexData[i].length > 3){
-              result.push(indexData[i].split(','));
+              var temp = indexData[i].split(',');
+              temp[1] *= conf.public.backtestTimestampMultiplier;
+              temp[2] *= conf.public.backtestTimestampMultiplier;
+              result.push(temp);
             }
           }
           var chunk;
@@ -154,7 +165,9 @@ backtest.fast = function(pair, startTime, diff){
             var chunkData = data.split('\n');
             for(var i=1;i<chunkData.length;i++){
               if(chunkData[i].length > 3){
-                chunkResult.push(chunkData[i].split(','));
+                var temp = chunkData[i].split(',');
+                temp[0] *= conf.public.backtestTimestampMultiplier;
+                chunkResult.push(temp);
               }
             }
             var curIndex;
@@ -184,7 +197,9 @@ backtest.fastSend = function(chunk, chunkResult, curIndex, diff, oldTime, pair, 
     backtest.readTickFile(pair, chunk, function(err, data){
       for(var i=1;i<chunkData.length;i++){
         if(chunkData[i].length > 3){
-          chunkResult.push(chunkData[i].split(','));
+          var temp = chunkData[i].split(',');
+          temp[0] *= conf.public.backtestTimestampMultiplier;
+          chunkResult.push(temp);
         }
       }
     });

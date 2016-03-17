@@ -56,6 +56,9 @@ publicConfig.averageCalcResolution = 12;
 publicConfig.momentumCalcResolution = 32;
 
 //****If this is true, backtest ticks will be ignored.  If false, live ticks will be ignored.*****
-publicConfig.live = true;
+publicConfig.live = false;
 
 publicConfig.mongoIndexRebuildPeriod = 600 * 1000;
+
+//timestamps from backtests are multiplied by this before being sent to tick_generator
+publicConfig.backtestTimestampMultiplier = 0.001;
