@@ -16,7 +16,7 @@ var conf = require("../../conf/conf");
 
 //unix timestamp format.
 var pair = "usdcad"; //like "usdcad"
-var startTime = 1451887201152; //like 1393826400 * 1000
+var startTime = 1452290337645; //like 1393826400 * 1000
 var endTime = 1457244000 * 1000;
 
 //time between data requests
@@ -27,9 +27,8 @@ var redisSubClient = redis.createClient();
 redisSubClient.subscribe("historicalPrices");
 
 var lastTick = {timestamp: startTime};
-var lastTriedEndPrice;
-var waitingForData = false;
-var lastChunkIDS = [];
+var lastTriedEndPrice = startTime + 10000;
+var lastChunkIDs = [];
 var curStart;
 var curEnd;
 
@@ -37,47 +36,35 @@ redisSubClient.on("message", function(channel, message){
   //console.log(message);
   var parsed = JSON.parse(message);
 
-  if(parsed.error){
+  if(parsed.error && parsed.error == "No ticks in range"){
     setTimeout(function(){
-      lastChunkIDS.push(parsed.id);
-      //here's to assuming there won't be a period where there are never more than 300 ticks in a 10-second period
+      lastChunkIDs.push(parsed.id);
       downloadData(lastTriedEndPrice, lastTriedEndPrice + 10000);
     }, downloadDelay);
-  }else if(parsed.type && parsed.type == "chunkID"){// new segment
+  }else if(parsed.status && parsed.status == ">300 data"){ //there were more than 300 ticks in the 10-second range
+    //TODO: Handle >300 ticks
+  }else if(parsed.type && parsed.type == "segmentID"){
     responseWaiterCaller(parsed.id);
-    console.log("New chunk id: " + parsed.id);
-  }else{//TODO: Make thing in java code that sends a message meaning that more than 300 ticks were sent and handle it here.
-    if(parsed.status && parsed.status == "segmentDone"){ //end of current segment
-      setTimeout(function(){
-        downloadData(lastTriedEndPrice, lastTriedEndPrice + 10000);
-      }, downloadDelay);
-    }else{ //tick
-      if(lastTick && lastTick.timestamp < parsed.timestamp){
-        if(parsed.timestamp < endTime){
-          if(lastChunkIDS.indexOf(parsed.id) == -1){
-            lastChunkIDS.push(parsed.id);
-          }
-          if(lastChunkIDS.length > 23){ //trim last chunks so we don't overload memory
-            lastChunkIDS.shift();
-          }
-          lastTick = parsed;
-          storeTick(parsed);
-        }else{//all done
-          console.log("All ticks in range stored.");
-          process.exit(0);
-        } 
-      }else if(!lastTick){
-        lastTick = parsed;
-      }else{
-        //we got bullshit data not actually in the range because the api is horrible
-      }
+    //console.log("New chunk id: " + parsed.id);
+  }else if(parsed.type && parsed.type == "segment"){// new segment    
+    lastChunkIDs.push(parsed.id);
+    if(lastChunkIDs.length > 5000){
+      lastChunkIDs.shift()
     }
+
+    parsed.data.forEach(function(tick){
+      storeTick(tick);
+    });
+
+    setTimeout(function(){
+      downloadData(lastTriedEndPrice, lastTriedEndPrice + 10000);
+    }, downloadDelay);
   }
 });
 
 //if no reply from server in 1.5 seconds, assume it's not coming and start over.
 var responseWaiter = function(chunkID){
-  if(lastChunkIDS.indexOf(chunkID) == -1){ //if we haven't recieved a tick from the current segment yet
+  if(lastChunkIDs.indexOf(chunkID) == -1){ //if we haven't recieved a tick from the current segment yet
     console.log(chunkID + " not in array; Resending data request...");
     downloadData(curStart, curEnd); //re-send request for that segment
   }
@@ -86,7 +73,7 @@ var responseWaiter = function(chunkID){
 var responseWaiterCaller = function(oldID){
   setTimeout(function(){
     responseWaiter(oldID);
-  }, 1500);
+  }, 25000);
 };
 
 var downloadData = function(start, end){
@@ -108,6 +95,15 @@ var existingFiles = {};
 var toAppend;
 
 var storeTick = function(tick){
+  if(lastTick.timestamp >= tick.timestamp){ //don't store out-of-order ticks
+    return;
+  }
+
+  if(tick.timestamp > endTime){
+    console.log("All ticks in range downloaded and stored.");
+    process.exit(0);
+  }
+
   new Promise(function(fulfill, reject){
     if(!existingFiles[pair]){
       fs.stat(conf.private.tickRecorderOutputPath + pair + ".csv", function(err, res){
@@ -120,13 +116,15 @@ var storeTick = function(tick){
           existingFiles[pair] = true;
           fulfill();
         }
-      })
+      });
     }else{
       fulfill();
     }
   }).then(function(){
+    lastTick = tick;
+
     toAppend = "\n" + tick.timestamp + ", " + tick.bid + ", " + tick.ask;
-    fs.appendFile(conf.private.tickRecorderOutputPath + pair + ".csv", toAppend, function(err, res){})
+    fs.appendFile(conf.private.tickRecorderOutputPath + pair + ".csv", toAppend, function(err, res){});
   });
 };
 

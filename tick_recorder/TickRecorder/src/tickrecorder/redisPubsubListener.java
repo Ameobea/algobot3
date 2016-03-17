@@ -14,7 +14,7 @@ public class redisPubsubListener extends JedisPubSub {
     }
         
     public void onMessage(String channel, String message){
-        System.out.println("New redis message recieved on channel " + channel + ": " + message);
+        //System.out.println("New redis message recieved on channel " + channel + ": " + message);
         if(channel.equals("priceRequests")){ //JSON format should be this: "[{Pair: "USD/CAD", startTime: 1457300020.23, endTime: 1457300025.57, resolution: t1}]"
             JSONParser parser = new JSONParser();
             JSONArray array = null;

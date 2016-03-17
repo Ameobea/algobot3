@@ -15,9 +15,14 @@ public class ResponseListener implements IO2GResponseListener {
             O2GMarketDataSnapshotResponseReader marketSnapshotReader = readerFactory.createMarketDataSnapshotReader(ogr);
             Long lastTimestamp = null;
             
+            if(marketSnapshotReader.size() == 300){
+                TickRecorder.redisPublish("historicalPrices", "{\"status\": \">300 data\"}");
+            }
+            
+            String response = "{\"type\": \"segment\", \"id\": \"" + requestID;
+            response += "\", \"data\": [";
             for (int i = 0; i < marketSnapshotReader.size(); i++) {
-                String response = "{\"type\": \"tick\", \"id\": \"" + requestID;
-                response += "\", \"timestamp\": ";
+                response += "{\"timestamp\": ";
                 Calendar timestampCalendar = marketSnapshotReader.getDate(i);
                 lastTimestamp = timestampCalendar.getTimeInMillis();
                 response += String.valueOf(lastTimestamp);
@@ -26,17 +31,21 @@ public class ResponseListener implements IO2GResponseListener {
                 response += ", \"ask\": ";
                 response += String.valueOf(marketSnapshotReader.getAsk(i));
                 response += "}";
-                TickRecorder.redisPublish("historicalPrices", response);
+                if(i < marketSnapshotReader.size()-1){
+                    response += ", ";
+                }
             }
-            //TODO: Send message if marketSnapshotReader.size() == 300, meaning we missed ticks.  Also handle in client code.
-            TickRecorder.redisPublish("historicalPrices", "{\"status\": \"segmentDone\", \"lastTimestamp\": " + String.valueOf(lastTimestamp) + "}");
+            response += "]}";
+            
+            TickRecorder.redisPublish("historicalPrices", response);
+            //TickRecorder.redisPublish("historicalPrices", "{\"status\": \"segmentDone\", \"lastTimestamp\": " + String.valueOf(lastTimestamp) + "}");
         }
     }
 
     public void onRequestFailed(String requestID, String err){
         System.out.println("Request failed with error " + err);
         if(err.contains("unsupported scope")){
-            TickRecorder.redisPublish("historicalPrices", "{\"error\": \"error: no ticks found in that range.\", \"id\": \"" + requestID + "\"}");
+            TickRecorder.redisPublish("historicalPrices", "{\"error\": \"No ticks in range\", \"id\": \"" + requestID + "\"}");
         }
     }
 
