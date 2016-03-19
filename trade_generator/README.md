@@ -17,10 +17,13 @@ Exit Price/condition data can take a variety of forms.  For some trades, it may 
 ### Ledger
 Keeps track of open trades and balance for the trading account.  Either uses broker API or simulates a ledger.  
 
-### Trade Size
+### Trade Manager
 Implements an investment strategy to determine how large to make positions and how to manage positions while they're open.  Will talk to the ledger to determine necessary data about balance.  
 
-I want to use the Kelley Criterion to determine trade size.  Probability from the generator module will be the primay output, and expected gains/losses should also be factored into the calculation.  An additional setting for tolerated risk should also be added.
+Also manages open positions and increases/reduces position size dynamically, if configured.
+
+## Trade Logger
+Records data about executed trades and the conditions that led to their executions.  Can also log things like total profit so far, etc.
 
 ## Notes/TODO
 **TODO: Simulate all maxima/minima stripe pairs as well as momentum pairs simultaneously to determine which pairs are the best for the current market.`**

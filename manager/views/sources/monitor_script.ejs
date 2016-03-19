@@ -3,6 +3,7 @@
 /*jslint browser: true*/ /*global Highcharts, $*/
 var mainGraph;
 var momentumGraph;
+var smaDistGraph;
 var buttonHTML;
 var oldHTML;
 var lastHTML;
@@ -29,7 +30,7 @@ var resetAndUpdate = function(range, callback){
   var momentums = [];
   var momentumBoxes = [].slice.call($(".momentumInput"));
   momentumBoxes.forEach(function(box){
-    if(box.value != ""){
+    if(box.value !== ""){
       momentums.push(box.value);
     }
   });
@@ -91,7 +92,7 @@ var resetAndUpdate = function(range, callback){
           fulfill(values);
         });
       })
-    )
+    );
   });
 
   drawSeries(finalPromiseArray).then(function(){
@@ -116,6 +117,36 @@ var resetAndUpdate = function(range, callback){
     var drawUpBands =   $("#drawUpBands").is(":checked");
 
     drawCrossBands(pair, range, stripePeriod, realCompUpPeriods, realCompDnPeriods, drawDownBands, drawUpBands);
+
+    var smaDistPeriod     = $("#smaDistInput").val();
+    var smaDistCompPeriod = $(".smaDistCompInput").val().split(",").map(function(x){return parseInt(x);});
+
+    drawSMADistGraph(pair, range, smaDistPeriod, smaDistCompPeriod);
+  });
+};
+
+var drawSMADistGraph = function(pair, range, distPeriod, distCompPeriods){
+  var params = {pair: pair, maPeriod: parseInt(distPeriod), $or: []};
+
+  distCompPeriods.forEach(function(compPeriod){
+    params.$or.push({compPeriod: compPeriod});
+  });
+
+  getData(pair, "smaDists", params, range, function(distData){
+
+    if(distData.length > 0){
+      distCompPeriods.forEach(function(compPeriod){
+        var dataSeries = {data: [], yAxis: "distAxis", name: "Period " + distPeriod + "," + compPeriod + " Distance", type: "area"};
+        
+        distData.forEach(function(cross){
+          if(cross.compPeriod == compPeriod){
+            dataSeries.data.push([cross.timestamp * 1000, cross.diff]);
+          }
+        });
+
+        smaDistGraph.addSeries(dataSeries);
+      });
+    }
   });
 };
 
@@ -133,7 +164,7 @@ var mapColors = function(compPeriods){
   });
 
   return colorArray;
-}
+};
 
 var drawCrossBands = function(pair, range, stripePeriod, compUpPeriods, compDownPeriods, drawDownBands, drawUpBands){
   //TODO: Make it so that you can draw up bands for one compPeriod and down bands for a different compPeriod
@@ -150,7 +181,6 @@ var drawCrossBands = function(pair, range, stripePeriod, compUpPeriods, compDown
 
   getData(pair, "smaCrosses", params, range, function(crossData){
     if(crossData.length > 0){
-      var isCrossed = crossData[0].direction; //false = down, true = up
       var includedCompPeriods = [];
 
       crossData.forEach(function(cross){
@@ -163,11 +193,11 @@ var drawCrossBands = function(pair, range, stripePeriod, compUpPeriods, compDown
       var colorsMap = mapColors(includedCompPeriods);
 
       crossData.forEach(function(cross, index){
-        pairIndex = false;
+        var pairIndex = false;
 
         for(var i=index+1;i<crossData.length;i++){
           if(crossData[i].compPeriod == cross.compPeriod){
-            var pairIndex = i;
+            pairIndex = i;
             break;
           }
         }
@@ -194,7 +224,7 @@ var drawCrossBands = function(pair, range, stripePeriod, compUpPeriods, compDown
       });
     }
   });
-}
+};
 
 var drawSeries = function(finalPromiseArray_){
   return Promise.all(finalPromiseArray_).then(function(finalValues){ //prices, smas, momentums
@@ -242,42 +272,60 @@ var drawSeries = function(finalPromiseArray_){
       });
     }
   });
-}
+};
 
 var clearChart = function(chart){
   while(mainGraph.series.length > 0)
     mainGraph.series[0].remove(true);
   while(momentumGraph.series.length > 0)
     momentumGraph.series[0].remove(true);
+  while(smaDistGraph.series.length > 0)
+    smaDistGraph.series[0].remove(true);
   mainGraph.xAxis[0].removePlotBand("band");
 };
 
 var setupConfigListeners = function(){
-  $("#averageExtend").off().click(function(){
-    buttonHTML = '<input type="button" id="averageRemove" value="Remove One"><input type="button" id="averageExtend" value="Add Another">';
+  $(".averageExtend").off().click(function(){
+    buttonHTML = '<input type="button" class="averageRemove" value="Remove One"><input type="button" class="averageExtend" value="Add Another">';
     oldHTML = $("#averages").html().split(buttonHTML)[0];
     $("#averages").html(oldHTML + '<input type="text" class="averageInput"><br>\n' + buttonHTML);
     setupConfigListeners();
   });
 
-  $("#averageRemove").off().click(function(){
-    buttonHTML = '<input type="button" id="averageRemove" value="Remove One"><input type="button" id="averageExtend" value="Add Another">';
+  $(".averageRemove").off().click(function(){
+    buttonHTML = '<input type="button" class="averageRemove" value="Remove One"><input type="button" class="averageExtend" value="Add Another">';
     lastHTML = '<input type="text" class="averageInput"><br>\n' + buttonHTML;
     oldHTML = $("#averages").html().split(lastHTML)[0];
     $("#averages").html(oldHTML + buttonHTML);
     setupConfigListeners();
   });
 
-  $("#momentumExtend").off().click(function(){
-    buttonHTML = '<input type="button" id="momentumRemove" value="Remove One"><input type="button" id="momentumExtend" value="Add Another">';
+  $(".momentumExtend").off().click(function(){
+    buttonHTML = '<input type="button" class="momentumRemove" value="Remove One"><input type="button" class="momentumExtend" value="Add Another">';
     oldHTML = $("#momentums").html().split(buttonHTML)[0];
     $("#momentums").html(oldHTML + '<input type="text" class="momentumInput"><br>\n' + buttonHTML);
     setupConfigListeners();
   });
 
-  $("#momentumRemove").off().click(function(){
-    var buttonHTML = '<input type="button" id="momentumRemove" value="Remove One"><input type="button" id="momentumExtend" value="Add Another">';
+  $(".momentumRemove").off().click(function(){
+    var buttonHTML = '<input type="button" class="momentumRemove" value="Remove One"><input type="button" class="momentumExtend" value="Add Another">';
     var lastHTML = '<input type="text" class="momentumInput"><br>\n' + buttonHTML;
+    var oldHTML = $("#momentums").html().split(lastHTML)[0];
+    $("#momentums").html(oldHTML + buttonHTML);
+    setupConfigListeners();
+  });
+
+  $(".smaDistCompExtend").off().click(function(){
+    var buttonHTML = '<input type="button" class="smaDistCompRemove" value="Remove One"><input type="button" class="smaDistCompExtend" value="Add Another">';
+    var lastHTML = '<input type="text" class="smaDistCompInput"><br>\n' + buttonHTML;
+    var oldHTML = $("#momentums").html().split(lastHTML)[0];
+    $("#momentums").html(oldHTML + buttonHTML);
+    setupConfigListeners();
+  });
+
+  $(".smaDistCompRemove").off().click(function(){
+    var buttonHTML = '<input type="button" class="smaDistCompRemove" value="Remove One"><input type="button" class="smaDistCompExtend" value="Add Another">';
+    var lastHTML = '<input type="text" class="smaDistCompInput"><br>\n' + buttonHTML;
     var oldHTML = $("#momentums").html().split(lastHTML)[0];
     $("#momentums").html(oldHTML + buttonHTML);
     setupConfigListeners();
@@ -349,6 +397,37 @@ $(document).ready(function(){
     },
     series: [{
       name: 'Average Rate of Change',
+      data: []
+    }]
+  });
+
+  smaDistGraph = new Highcharts.Chart({ //TODO: Change colors to varying shades of red/green if it's above/below 0
+    chart: {
+      renderTo: 'smaDistGraph',
+      zoomType: "x"
+    },
+    title: {
+      text: 'SMA Distances Chart'
+    },
+    xAxis: {
+      type: 'datetime',
+      tickPixelInterval: 150,
+      maxZoom: 20 * 1000
+    },
+    plotOptions: {
+      series: {
+        animation: false
+      }
+    },
+    yAxis: {
+      id: "distAxis",
+      title: {
+        text: "Distance",
+        margin: 80
+      }
+    },
+    series: [{
+      name: 'SMA Distances',
       data: []
     }]
   });

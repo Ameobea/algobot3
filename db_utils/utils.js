@@ -34,7 +34,8 @@ dbUtil.flush = function(callback){
       function(){db.collection("smas").drop(function(err, res){});},
       function(){db.collection("momentums").drop(function(err, res){});},
       function(){db.collection("prices").drop(function(err, res){});},
-      function(){db.collection("smaCrosses").drop(function(err, res){});}
+      function(){db.collection("smaCrosses").drop(function(err, res){});},
+      function(){db.collection("smaDists").drop(function(err, res){});}
     ], function(){
       db.close();
       callback();
@@ -68,7 +69,7 @@ dbUtil.indexIterator = function(db, timeout){
     dbUtil.createIndexes(db, function(){
       setTimeout(function(){
         dbUtil.indexIterator(db, timeout);
-      });
+      }, timeout);
     });
   }
 };

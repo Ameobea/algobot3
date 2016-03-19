@@ -14,7 +14,8 @@ var conf = require("../conf/conf");
 var dbUtil = require("../db_utils/utils");
 var sma = require("../algos/average/sma");
 var momentumCalc = require("../algos/momentum");
-var maxMin = require("../algos/maximaMinima");
+var maCross = require("../algos/maCross");
+var maDist = require("../algos/maDistance");
 
 var core = exports;
 
@@ -54,9 +55,20 @@ core.start = function(){
         }
       });
 
+      var calced = [];
+
       core.calcAverages(priceUpdate, toAverage, db, function(average, averagePeriod){
-        maxMin.calc(pair, curAverages, averagePeriod, average, timestamp, db);
+
+        maCross.calc(pair, curAverages, averagePeriod, average, timestamp, db);
+
         core.storeLocalAverages(pair, averagePeriod, timestamp, average);
+
+        calced.push({period: averagePeriod, average: average});
+        if(calced.length == toAverage.length){
+          calced.forEach(function(calc){
+            maDist.calc(pair, timestamp, calc.period, calc.average, curAverages, db);
+          });
+        }
         // Averages updated
 
         toMomentum = [];

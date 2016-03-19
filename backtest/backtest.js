@@ -103,21 +103,11 @@ backtest.live = function(pair, startTime){
 };
 
 backtest.liveSend = function(chunk, chunkResult, curIndex, diff, oldTime, pair, client){
-  if(curIndex > chunkResult.length){
-    curIndex = 1;
-    chunk++;
-    chunkResult = [];
-    var chunkData = data.split('\n');
-    var chunkFile = backtest.readTickFile(pair, chunk, function(err, data){
-      for(var i=1;i<chunkData.length;i++){
-        if(chunkData[i].length > 3){
-          var temp = chunkData[i].split(',');
-          temp[0] *= conf.public.backtestTimestampMultiplier;
-          chunkResult.push(temp);
-        }
-      }
+  if(curIndex >= chunkResult.length){
+    backtest.stopOne(pair, function(){
+      backtest.live(pair, oldTime + 1);
     });
-    diff = parseFloat(chunkResult[1][0]) - oldTime;
+    return;
   }else{
     diff = (parseFloat(chunkResult[curIndex+1][0]) - parseFloat(chunkResult[curIndex][0]))*1000;
   }
@@ -183,26 +173,17 @@ backtest.fast = function(pair, startTime, diff){
         return 'Simulation started successfully for symbol ' + pair;
       });
     }else{
-      return "Backtest already running for symbol " + pair;
+      console.log("Backtest already running for symbol " + pair);
     }
   });
 };
 
 backtest.fastSend = function(chunk, chunkResult, curIndex, diff, oldTime, pair, client){
-  if(curIndex > chunkResult.length){
-    curIndex = 1;
-    chunk++;
-    chunkResult = [];
-    var chunkData = data.split('\n');
-    backtest.readTickFile(pair, chunk, function(err, data){
-      for(var i=1;i<chunkData.length;i++){
-        if(chunkData[i].length > 3){
-          var temp = chunkData[i].split(',');
-          temp[0] *= conf.public.backtestTimestampMultiplier;
-          chunkResult.push(temp);
-        }
-      }
+  if(curIndex >= chunkResult.length){
+    backtest.stopOne(pair, function(){
+      backtest.fast(pair, oldTime + 1, diff);
     });
+    return;
   }
   if(curIndex % conf.public.fastBacktestCheckInterval === 0){ //if this is a check interval
     backtest.checkIfRunning(pair, function(running){ 
@@ -239,3 +220,11 @@ backtest.stop = function(pair){
     });
   });
 };
+
+backtest.stopOne = function(pair, callback){
+  dbUtil.mongoConnect(function(db){
+    db.collection("backtestFlags").removeOne({pair: pair}, function(){
+      callback();
+    });
+  });
+}

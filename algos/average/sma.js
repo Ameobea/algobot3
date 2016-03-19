@@ -16,15 +16,19 @@ var sma = exports;
 
 //calculates multiple averages at different periods from one end time
 //callback is called for each individual average calculated
-sma.averageMany = function(pair, timestamp, periods, db, callback){
+sma.averageMany = function(pair, timestamp, periods, db, callback, finalCallback){
+  var calced = [];
   var tasks = periods.map(function(x){
     return new Promise(function(fulfill, reject){
       sma.average(pair, timestamp, x, db, function(average, averagePeriod){
+        calced.push({period: averagePeriod, average: average});
         fulfill(callback(average, averagePeriod));
       });
     });
   });
-  Promise.all(tasks);
+  Promise.all(tasks).then(function(calced){
+    finalCallback(calced);
+  });
 }
 
 //pull prices from database and calculate average; then store.
