@@ -6,6 +6,7 @@ var tickGenerator = require("./tick_generator/tick_generator");
 var backtest = require("./backtest/backtest");
 var core = require("./algo_core/core");
 var dbUtils = require("./db_utils/utils");
+var ledger = require("./trade_generator/ledger");
 
 dbUtils.init(function(){
   gRedis = redis.createClient(); //global redis client
@@ -15,6 +16,12 @@ dbUtils.init(function(){
   manager.start(conf.public.managerServerPort);
   tickGenerator.listen();
   core.start();
+
+  if(conf.public.simulatedLedger){
+    dbUtils.mongoConnect(function(db){
+      ledger.init(conf.public.startingBalance, db);
+    });
+  }
 
   if(conf.public.environment == "dev"){
     backtest.clearFlags(function(){});

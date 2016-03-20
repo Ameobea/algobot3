@@ -16,6 +16,7 @@ var sma = require("../algos/average/sma");
 var momentumCalc = require("../algos/momentum");
 var maCross = require("../algos/maCross");
 var maDist = require("../algos/maDistance");
+var tradeGen = require("../trade_generator/generator");
 
 var core = exports;
 
@@ -56,37 +57,41 @@ core.start = function(){
       });
 
       var calced = [];
+      new Promise(function(fulfill, reject){
+        core.calcAverages(priceUpdate, toAverage, db, function(average, averagePeriod){
+          maCross.calc(pair, curAverages, averagePeriod, average, timestamp, db, function(newCrosses){
+            core.storeLocalAverages(pair, averagePeriod, timestamp, average);
 
-      core.calcAverages(priceUpdate, toAverage, db, function(average, averagePeriod){
-
-        maCross.calc(pair, curAverages, averagePeriod, average, timestamp, db);
-
-        core.storeLocalAverages(pair, averagePeriod, timestamp, average);
-
-        calced.push({period: averagePeriod, average: average});
-        if(calced.length == toAverage.length){
-          calced.forEach(function(calc){
-            maDist.calc(pair, timestamp, calc.period, calc.average, curAverages, db);
-          });
-        }
-        // Averages updated
-
-        toMomentum = [];
-        conf.public.monitoredMomentumPeriods.forEach(function(monitoredMomentumPeriod){
-          if(curMomentums[pair] && curMomentums[pair][averagePeriod] && curMomentums[pair][averagePeriod][monitoredMomentumPeriod]){
-            if((timestamp - curMomentums[pair][averagePeriod][monitoredMomentumPeriod][0]) > monitoredMomentumPeriod/conf.public.momentumCalcResolution){
-              toMomentum.push(monitoredMomentumPeriod);
+            calced.push({period: averagePeriod, average: average});
+            if(calced.length == toAverage.length){
+              calced.forEach(function(calc){
+                maDist.calc(pair, timestamp, calc.period, calc.average, curAverages, db);
+              });
             }
-          }else{
-            toMomentum.push(monitoredMomentumPeriod);
-          }
-        });
+            // Averages updated
 
-        core.calcMomentums(priceUpdate, parseInt(averagePeriod), toMomentum, db, function(momentum, momentumPeriod){
-          core.storeLocalMomentums(pair, averagePeriod, momentumPeriod, timestamp, momentum);
-          // Momentums updated
+            toMomentum = [];
+            conf.public.monitoredMomentumPeriods.forEach(function(monitoredMomentumPeriod){
+              if(curMomentums[pair] && curMomentums[pair][averagePeriod] && curMomentums[pair][averagePeriod][monitoredMomentumPeriod]){
+                if((timestamp - curMomentums[pair][averagePeriod][monitoredMomentumPeriod][0]) > monitoredMomentumPeriod/conf.public.momentumCalcResolution){
+                  toMomentum.push(monitoredMomentumPeriod);
+                }
+              }else{
+                toMomentum.push(monitoredMomentumPeriod);
+              }
+            });
 
+            core.calcMomentums(priceUpdate, parseInt(averagePeriod), toMomentum, db, function(momentum, momentumPeriod){
+              core.storeLocalMomentums(pair, averagePeriod, momentumPeriod, timestamp, momentum);
+              // Momentums updated
+
+            }, function(){
+              fulfill([pair, newCrosses]);
+            });
+          });
         });
+      }).then(function(res){//after all averages + momentums are calculated
+        tradeGen.eachTick(res[0], timestamp, curMomentums[pair], res[1], db);
       });
     });
   });
@@ -101,16 +106,16 @@ core.calcAverages = function(priceUpdate, averagePeriods, db, callback){
 };
 
 
-core.calcMomentums = function(priceUpdate, averagePeriod, momentumPeriods, db, callback){
+core.calcMomentums = function(priceUpdate, averagePeriod, momentumPeriods, db, callback, finalCallback){
   momentumCalc.calcMany(priceUpdate.pair, priceUpdate.timestamp, averagePeriod, momentumPeriods, db, function(momentumPeriod, momentum){
     callback(momentum, momentumPeriod);
-  });
+  }, finalCallback);
 };
 
 core.storeLocalAverages = function(pair_, averagePeriod_, timestamp_, average_){
   averagePeriod_ = averagePeriod_.toString();
   curAverages[pair_][averagePeriod_] = [timestamp_, average_];
-}
+};
 
 core.storeLocalMomentums = function(pair_, averagePeriod_, momentumPeriod_, timestamp_, momentum_){
   momentumPeriod_ = momentumPeriod_.toString();
@@ -122,4 +127,4 @@ core.storeLocalMomentums = function(pair_, averagePeriod_, momentumPeriod_, time
     curMomentums[pair_][averagePeriod_] = {};
   }
   curMomentums[pair_][averagePeriod_][momentumPeriod_] = [timestamp_, momentum_];
-}
+};

@@ -25,7 +25,9 @@ maCross.initCrossStatuses = function(pair, period, compPeriod, status){
   }
 }
 
-maCross.calc = function(pair, lastAverages, newAveragePeriod, newAverage, timestamp, db){
+maCross.calc = function(pair, lastAverages, newAveragePeriod, newAverage, timestamp, db, callback){
+  var changes = [];
+
   conf.public.monitoredAveragePeriods.forEach(function(monitoredPeriod){
     if(lastAverages[pair] && lastAverages[pair][newAveragePeriod.toString()] && monitoredPeriod >= newAveragePeriod){
       var curStatus = (newAverage > lastAverages[pair][monitoredPeriod.toString()][1]);
@@ -35,14 +37,18 @@ maCross.calc = function(pair, lastAverages, newAveragePeriod, newAverage, timest
       if(curStatus != crossStatuses[pair][newAveragePeriod.toString()][monitoredPeriod.toString()]){
         crossStatuses[pair][newAveragePeriod.toString()][monitoredPeriod.toString()] = curStatus;
         
+        changes.push({period: newAveragePeriod, compPeriod: monitoredPeriod, direction: curStatus});
         maCross.storeCross(pair, timestamp, newAveragePeriod, monitoredPeriod, curStatus, db);
       }
     }
   });
+
+  callback(changes);
 }
 
 maCross.storeCross = function(pair, timestamp, period, compPeriod, direction, db){
   var crosses = db.collection("smaCrosses");
   var doc = {pair: pair, timestamp: timestamp, period: period, compPeriod: compPeriod, direction: direction};
+  
   crosses.insertOne(doc, function(res){});
 }

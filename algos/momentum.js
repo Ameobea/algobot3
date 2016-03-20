@@ -12,7 +12,7 @@ var conf = require("../conf/conf");
 var momentum = exports;
 
 //callback is called for each individual momentum calculated
-momentum.calcMany = function(pair, endTime, averagePeriod, momentumPeriods, db, callback){
+momentum.calcMany = function(pair, endTime, averagePeriod, momentumPeriods, db, callback, finalCallback){
   var tasks = momentumPeriods.map(function(x){
     return new Promise(function(fulfill, reject){
       momentum.momentum(pair, endTime, averagePeriod, x, db, function(momentum, momentumPeriod){
@@ -20,7 +20,11 @@ momentum.calcMany = function(pair, endTime, averagePeriod, momentumPeriods, db, 
       });
     });
   });
-  Promise.all(tasks);
+  Promise.all(tasks).then(function(x){
+    finalCallback();
+  }, function(x){
+    finalCallback();
+  });
 };
 
 momentum.momentum = function(pair, endTime, averagePeriod, momentumPeriod, db, callback){

@@ -16,7 +16,7 @@ var conf = require("../../conf/conf");
 
 //unix timestamp format.
 var pair = "usdcad"; //like "usdcad"
-var startTime = 1455919138126; //like 1393826400 * 1000
+var startTime = 1456818155750; //like 1393826400 * 1000
 var endTime = 1457244000 * 1000;
 
 //time between data requests
