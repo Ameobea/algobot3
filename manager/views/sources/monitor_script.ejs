@@ -95,6 +95,7 @@ var resetAndUpdate = function(range, callback){
     );
   });
 
+  //TODO: Reduce number of points that are plotted to make it easier on client cpu
   drawSeries(finalPromiseArray).then(function(){
     var stripePeriod = parseInt($("#maxMinStripePeriod").val());
 
@@ -122,8 +123,52 @@ var resetAndUpdate = function(range, callback){
     var smaDistCompPeriod = $(".smaDistCompInput").val().split(",").map(function(x){return parseInt(x);});
 
     drawSMADistGraph(pair, range, smaDistPeriod, smaDistCompPeriod);
+
+    drawTrades(pair, range);
   });
 };
+
+var drawTrades = function(pair, range){
+  var params = {pair: pair};
+
+  getData(pair, "tradeHistory", params, range, function(tradeData){
+    var filtered = tradeData.filter(function(trade){
+      return trade.pair == pair;
+    });
+    tradeIterator(filtered);
+  });
+}
+
+var tradeIterator = function(trades){
+  if(trades.length > 0){
+    var tradeStart = trades[0];
+    trades.shift();
+
+    if(trades.length > 0){
+      var tradeStop = trades[0];
+      trades.shift();
+      drawTradeLine(tradeStart.timestamp, tradeStop.timestamp, tradeStart.openPrice, tradeStop.closePrice, tradeStart.direction);
+
+      tradeIterator(trades);
+    }else{
+      //TODO: draw trade line to current price
+    }
+  }
+}
+
+var drawTradeLine = function(startTime, stopTime, startPrice, stopPrice, direction){
+  var color;
+  if(direction){
+    color = "blue";
+  }else{
+    color = "red";
+  }
+
+  var series = {yAxis: "priceAverageAxis", showInLegend: false, type: "line", color: color};
+  series.data = [[startTime * 1000, startPrice], [stopTime * 1000, stopPrice]];
+
+  mainGraph.addSeries(series);
+}
 
 var drawSMADistGraph = function(pair, range, distPeriod, distCompPeriods){
   var params = {pair: pair, maPeriod: parseInt(distPeriod), $or: []};

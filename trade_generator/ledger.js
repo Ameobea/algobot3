@@ -77,10 +77,12 @@ ledger.closePosition = function(id, closePrice, db, callback){
   var openPositions = db.collection("openPositions");
 
   openPositions.find({_id: id}).toArray(function(err, positionArray){
-    var position = positionArray[0];
-    ledger.updateBalance(position.units * closePrice, db, function(){
-      var doc = {_id: id};
-      openPositions.removeOne(doc, callback);
-    });
+    if(positionArray.length > 0){
+      var position = positionArray[0];
+      ledger.updateBalance(position.units * closePrice, db, function(){
+        var doc = {_id: id};
+        openPositions.removeOne(doc, callback);
+      });
+    }
   });
 };

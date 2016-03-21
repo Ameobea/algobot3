@@ -9,8 +9,8 @@ var mac1 = exports;
 mac1.config = {
   maPeriod: 30,
   maCompPeriod: 5000,
-  momentumPeriod: 5000,
-  momentumCompPeriod: 5000
+  momentumPeriod: 3000,
+  momentumCompPeriod: 3000
 };
 
 //TODO: Save to redis for some persistance
@@ -37,7 +37,7 @@ mac1.manage = function(pair, momentum, callback){
   if(!mac1.status[pair]){
     mac1.status[pair] = {lastMomentumDirection: "nowhere"};
   }
-  if(typeof mac1.status[pair].lastMomentum == "undefined"){
+  if(typeof mac1.status[pair].lastMomentum == "undefined"){ //if this is the first momentum being stored
     mac1.status[pair].lastMomentum = momentum;
   }else{
     if(mac1.status[pair].lastMomentumDirection == "nowhere"){ //if this is the first momentum direction calculated
@@ -45,11 +45,12 @@ mac1.manage = function(pair, momentum, callback){
     }
   }
 
-  if(mac1.status[pair].lastMomentumDirection != momentum[1] > mac1.status[pair].lastMomentum[1]){ //direction of momentum has changed
+  if(mac1.status[pair].lastMomentum[1] != momentum[1] && mac1.status[pair].lastMomentumDirection != momentum[1] > mac1.status[pair].lastMomentum[1]){ //direction of momentum has changed
+    mac1.status[pair].lastMomentum = momentum;
     mac1.status[pair].lastMomentumDirection = !mac1.status[pair].lastMomentumDirection;
-    callback({direction: mac1.status[pair].lastMomentumDirection}); //close all trades contrary to momentum reversal
+    callback({direction: !mac1.status[pair].lastMomentumDirection}); //close all trades contrary to momentum reversal
   }else{
-    mac1.status[pair].lastMomentumDirection = momentum[1] > mac1.status[pair].lastMomentum[1];
+    mac1.status[pair].lastMomentum = momentum;
     callback(false);
   }
 };

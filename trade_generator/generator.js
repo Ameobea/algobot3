@@ -37,9 +37,9 @@ tradeGen.eachTick = function(pair, timestamp, curPairMomentums, newCrosses, db){
           manager.getTradeSize(db, function(size){
             tradeGen.getTick(pair, timestamp, db, function(tick){
               if(signal.direction){
-                var openPrice = tick.ask;
-              }else{
                 var openPrice = tick.bid;
+              }else{
+                var openPrice = tick.ask;
               }
 
               ledger.openPosition(pair, openPrice, size, signal.direction, db, function(){
@@ -52,12 +52,12 @@ tradeGen.eachTick = function(pair, timestamp, curPairMomentums, newCrosses, db){
     }
   });
 
-  strat.manage(pair, curPairMomentums[strat.config.momentumPeriod][strat.config.momentumCompPeriod], function(signal){
+  strat.manage(pair, curPairMomentums[strat.config.momentumPeriod.toString()][strat.config.momentumCompPeriod.toString()], function(signal){
     if(signal){
-      ledger.getOpenPositions(pair, {direction: signal.direction}, db, function(positions){
+      ledger.getOpenPositions(pair, {direction: !signal.direction}, db, function(positions){
         positions.forEach(function(position){
           tradeGen.getTick(pair, timestamp, db, function(tick){
-            if(signal.direction){
+            if(position.direction){
               var closePrice = tick.ask;
             }else{
               var closePrice = tick.bid;
