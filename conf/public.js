@@ -19,8 +19,8 @@ publicConfig.tickDataDirectory = "/var/algobot3/tick_data/";
 
 /* After this number of backtest iterations, a request will be made to the database to
 verify that the backtest has not been cancelled. */
-publicConfig.fastBacktestCheckInterval = 100;
-publicConfig.liveBacktestCheckInterval = 5;
+publicConfig.fastBacktestCheckInterval = 1000;
+publicConfig.liveBacktestCheckInterval = 15;
 
 /* Determines if an additional database query is made every time a moving average
 is calculated to get the tick that came before a matched set of ticks. 
@@ -45,8 +45,8 @@ publicConfig.storeRawTicks = true;
 //which average/momentum periods are calculated by the bot and monitored for crosses
 // publicConfig.monitoredAveragePeriods = [30,60,120,300,1000,3000,5000,10000];
 // publicConfig.monitoredMomentumPeriods = [15,30,60,120,300,600,1000,3000,5000];
-publicConfig.monitoredAveragePeriods = [30,3000,5000];
-publicConfig.monitoredMomentumPeriods = [3000];
+publicConfig.monitoredAveragePeriods = [30,5000];
+publicConfig.monitoredMomentumPeriods = [5000];
 
 //set these to true to enable calculations to be sent through redis pusub
 publicConfig.pubTicks = false;
@@ -54,8 +54,8 @@ publicConfig.pubPrices = true;
 publicConfig.pubSmas = true;
 publicConfig.pubMomentums = true;
 
-publicConfig.averageCalcResolution = 16;
-publicConfig.momentumCalcResolution = 32;
+publicConfig.averageCalcResolution = 32;
+publicConfig.momentumCalcResolution = 64;
 
 //****If this is true, backtest ticks will be ignored.  If false, live ticks will be ignored.*****
 publicConfig.live = false;

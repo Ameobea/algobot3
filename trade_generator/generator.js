@@ -11,7 +11,7 @@ var tradeGen = exports;
 var tradeLogger = require("./tradeLogger");
 var ledger = require("./ledger");
 
-var strat = require("./strategies/maCross1/maCross1");
+var strat = require("./strategies/basicMomentumReversal/index");
 var manager = require("./trade_managers/binaryKelley/binaryKelley")
 
 tradeGen.config = {
@@ -30,46 +30,53 @@ tradeGen.eachTick = function(pair, timestamp, curPairMomentums, newCrosses, db){
     });
   }
 
-  strat.getSignal(pair, crossStatus, db, function(signal){
-    if(signal){ //if it's time to make a trade
-      ledger.getOpenPositions(pair, {}, db, function(positions){
-        if(positions.length === 0){//not already a position open
-          manager.getTradeSize(db, function(size){
-            tradeGen.getTick(pair, timestamp, db, function(tick){
-              if(signal.direction){
-                var openPrice = tick.bid;
-              }else{
-                var openPrice = tick.ask;
-              }
+  var momentum = curPairMomentums[strat.config.averagePeriod.toString()][strat.config.momentumPeriod.toString()][1];
 
-              ledger.openPosition(pair, openPrice, size, signal.direction, db, function(){
-                tradeLogger.logOpenTrade(pair, openPrice, size, signal.direction, timestamp, db);
+  new Promise(function(fulfill, reject){
+    strat.getSignal(pair, momentum, function(signal){
+      if(signal){ //if it's time to make a trade
+        ledger.getOpenPositions(pair, {}, db, function(positions){
+          if(positions.length === 0){//not already a position open
+            manager.getTradeSize(db, function(size){
+              tradeGen.getTick(pair, timestamp, db, function(tick){
+                if(signal.direction){
+                  var openPrice = tick.bid;
+                }else{
+                  var openPrice = tick.ask;
+                }
+
+                ledger.openPosition(pair, openPrice, size, signal.direction, db, function(){
+                  tradeLogger.logOpenTrade(pair, openPrice, size, signal.direction, timestamp, db);
+                  fulfill(signal); //trade made and signal
+                });
               });
             });
-          });
-        }
-      });
-    }
-  });
+          }else{
+            fulfill(signal); //no trade made + signal
+          }
+        });
+      }else{
+        reject(); //no signal
+      }
+    });
+  }).then(function(signal){ //there was a signal
+    ledger.getOpenPositions(pair, {direction: !signal.direction}, db, function(positions){
+      positions.forEach(function(position){
+        tradeGen.getTick(pair, timestamp, db, function(tick){
+          if(position.direction){
+            var closePrice = tick.ask;
+          }else{
+            var closePrice = tick.bid;
+          }
 
-  strat.manage(pair, curPairMomentums[strat.config.momentumPeriod.toString()][strat.config.momentumCompPeriod.toString()], function(signal){
-    if(signal){
-      ledger.getOpenPositions(pair, {direction: !signal.direction}, db, function(positions){
-        positions.forEach(function(position){
-          tradeGen.getTick(pair, timestamp, db, function(tick){
-            if(position.direction){
-              var closePrice = tick.ask;
-            }else{
-              var closePrice = tick.bid;
-            }
-
-            ledger.closePosition(position._id, closePrice, db, function(){
-              tradeLogger.logClosedTrade(pair, position.units, position.openPrice, closePrice, position.direction, timestamp, db);
-            });
+          ledger.closePosition(position._id, closePrice, db, function(){
+            tradeLogger.logClosedTrade(pair, position.units, position.openPrice, closePrice, position.direction, timestamp, db);
           });
         });
       });
-    }
+    });
+  }, function(signal){}).then(function(){ //need to catch the rejection in order to chain thens
+    strat.updateStatus(pair, momentum);
   });
 }
 

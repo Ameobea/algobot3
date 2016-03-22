@@ -12,8 +12,6 @@
 <div id="smaDistGraph" style="width: 100%; height: 350px; margin: 0 auto"></div>
 <div id="config">
   <h2>Chart Config</h2>
-  public.monitoredAveragePeriods = [30,60,300,3000,5000,10000];<br>
-  public.monitoredMomentumPeriods = [15,30,60,120,300,1000,3000,5000];
   <p>Note: For momentum pair, enter it in the format [averagePeriod],[momentumPeriod].</p>
   <table>
   <tr>
@@ -30,15 +28,15 @@
     <input type="button" class="averageRemove" value="Remove One"><input type="button" class="averageExtend" value="Add Another">
   </td>
   <td id="momentums">
-    <input type="text" class="momentumInput" value="30,120"><br>
+    <input type="text" class="momentumInput" value="3000,3000"><br>
     <input type="button" class="momentumRemove" value="Remove One"><input type="button" class="momentumExtend" value="Add Another">
   </td>
   </tr>
   <tr><td><p><input type="checkbox" name="rawTicks" id="loadTicks">Plot raw ticks</p></td></tr>
   <tr><td><p>Maxima/Minima Stripe Period</p></td><td>Up Band Comp. Periods</td><td>Down Band Comp. Periods</td></tr>
-  <tr><td><input type="text" id="maxMinStripePeriod" value="60"></td>
-  <td><input type="text" value="300" id="compUpPeriods"></td>
-  <td><input type="text" value="60" id="compDownPeriods"></td>
+  <tr><td><input type="text" id="maxMinStripePeriod" value="30"></td>
+  <td><input type="text" value="5000" id="compUpPeriods"></td>
+  <td><input type="text" value="5000" id="compDownPeriods"></td>
   </tr>
   <tr><td></td>
   <td><p>Draw Up Bands<input type="checkbox" id="drawUpBands" checked="true"></p></td>
@@ -50,16 +48,16 @@
   </tr>
   <tr>
   <td id="smaDistPeriod">
-    <input type="text" id="smaDistInput" value="60"><br>
+    <input type="text" id="smaDistInput" value="30"><br>
   </td>
   <td>
-    <input type="text" class="smaDistCompInput" value="300"><br>
+    <input type="text" class="smaDistCompInput" value="5000"><br>
     <input type="button" class="smaDistCompRemove" value="Remove One"><input type="button" class="smaDistCompExtend" value="Add Another">
   </td>
   </tr>
   <tr><td><p>Time Range</p></td></tr>
   <tr>
-  <td><input type="text" id="timeRange" value="1000"><input type="button" id="update" value="Update and Reset"></td>
+  <td><input type="text" id="timeRange" value="100000"><input type="button" id="update" value="Update and Reset"></td>
   </tr>
   </table>
 </div>

@@ -83,8 +83,6 @@ core.start = function(){
 
             core.calcMomentums(priceUpdate, parseInt(averagePeriod), toMomentum, db, function(momentum, momentumPeriod){
               core.storeLocalMomentums(pair, averagePeriod, momentumPeriod, timestamp, momentum);
-              // Momentums updated
-
             }, function(){
               fulfill([pair, newCrosses]);
             });

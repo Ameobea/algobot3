@@ -11,6 +11,8 @@ and send them to the Tick Generator.
 var fs = require('fs');
 var conf = require("../conf/conf");
 var redis = require("redis");
+var os = require("os");
+
 var dbUtil = require("../db_utils/utils");
 
 var backtest = exports;
@@ -68,9 +70,10 @@ backtest.live = function(pair, startTime){
               result.push(temp);
             }
           }
+          var chunk;
           for(var i=0;i<result.length;i++){
             if(parseFloat(result[i][2]) > startTime){
-              var chunk = parseFloat(result[i][0]);
+              chunk = parseFloat(result[i][0]);
               break;
             }
           }
@@ -150,7 +153,7 @@ backtest.fast = function(pair, startTime, diff){
               break;
             }
           }
-          var chunkFile = backtest.readTickFile(pair, chunk, function(err, data){
+          backtest.readTickFile(pair, chunk, function(err, data){
             var chunkResult = [];
             var chunkData = data.split('\n');
             for(var i=1;i<chunkData.length;i++){
@@ -186,7 +189,20 @@ backtest.fastSend = function(chunk, chunkResult, curIndex, diff, oldTime, pair, 
     return;
   }
   if(curIndex % conf.public.fastBacktestCheckInterval === 0){ //if this is a check interval
-    backtest.checkIfRunning(pair, function(running){ 
+    backtest.checkIfRunning(pair, function(running){
+      var load = os.loadavg()[0];
+
+      if(load > .8){
+        diff = parseInt(diff) + 3;
+        diff = diff.toString();
+        console.log("diff increased to " + diff);
+      }
+      if(load < .7 && parseInt(diff) > 10){
+        diff = parseInt(diff) - 1;
+        diff = diff.toString();
+        console.log("diff decreased to " + diff);
+      }
+
       if(!running){ //and it's been cancelled
         console.log("Backtest for pair " + pair + " stopped.");
         return;
@@ -227,4 +243,4 @@ backtest.stopOne = function(pair, callback){
       callback();
     });
   });
-}
+};
