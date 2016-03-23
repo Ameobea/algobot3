@@ -7,6 +7,7 @@ These are general bot settings that govern how the bot works.  What exists here 
 be though of a default options and should be committed to the repository.
 */
 
+//TODO: Make checks on bot startup to verify config is correct
 var publicConfig = exports;
 
 // "dev" for development, "prod" for live
@@ -70,4 +71,5 @@ publicConfig.backtestTimestampMultiplier = 0.001;
 publicConfig.simulatedLedger = true;
 publicConfig.startingBalance = 32400;
 
-//TODO: Make checks on bot startup to verify config is correct
+//ONLY ON IF using precalc backtesting.  TODO Switch this to dynamically change
+publicConfig.usePrecalcCore = true;

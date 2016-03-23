@@ -8,10 +8,14 @@ var dbUtils = require("../../db_utils/utils");
 //URL: [ip]/api/backtest/[fast/live]/[pair]
 //POST params: pair, startTime, [interval]
 router.post("/backtest/start/:type/:pair", (req, res, next)=>{
-  if(req.params.type.toLowerCase() == "fast"){
+  var type = req.params.type.toLowerCase();
+
+  if(type == "fast"){
     res.send(backtest.fast(req.params.pair, req.body.startTime, req.body.interval));
-  }else{
+  }else if(type == "live"){
     res.send(backtest.live(req.params.pair, req.body.startTime));
+  }else if(type == "precalced"){
+    res.send(backtest.precalced(req.params.pair, req.body.startTime, req.body.endTime));
   }
 });
 

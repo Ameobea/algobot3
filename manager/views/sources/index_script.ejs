@@ -6,12 +6,25 @@ $(document).ready(()=>{
   var serverAddress = "http://<%= ip %>";
 
   $("#backtestStartButton").click(()=>{
-    if($("#backtestTypeSelector option:selected").text().toLowerCase() == "fast"){
+    var type = $("#backtestTypeSelector option:selected").text().toLowerCase();
+
+    if(type == "fast"){
       var requestAddress = serverAddress + "api/backtest/start/fast/" + $("#backtestStartPair").val();
       $.post(requestAddress, {startTime: $("#backtestStartTime").val(), interval: $("#backtestSendInterval").val()});
-    }else{
+    }else if(type == "live"){
       var requestAddress = serverAddress + "api/backtest/start/live/" + $("#backtestStartPair").val();
       $.post(requestAddress, {startTime: $("#backtestStartTime").val()});
+    }else if(type == "pre-calculated"){
+      var requestAddress = serverAddress + "api/backtest/start/precalced/" + $("#backtestStartPair").val();
+      $.post(requestAddress, {startTime: $("#backtestStartTime").val(), endTime: $("#backtestEndTime").val()});
+    }
+  });
+
+  $("#backtestTypeSelector").change(()=>{
+    if($("#backtestTypeSelector option:selected").text().toLowerCase() == "pre-calculated"){
+      $("#endtime").show();
+    }else{
+      $("#endtime").hide();
     }
   });
 

@@ -62,7 +62,7 @@ backtest.live = (pair, startTime)=>{
         fs.readFile(conf.public.tickDataDirectory + pair.toUpperCase() + '/index.csv', {encoding: 'utf8'}, 'r', function(err,data){
           var result = [];
           var indexData = data.split('\n');
-          for(var i=1;i<indexData.length;i++){
+          for(let i=1;i<indexData.length;i++){
             if(indexData[i].length > 3){
               var temp = indexData[i].split(',');
               temp[1] *= conf.public.backtestTimestampMultiplier;
@@ -80,7 +80,7 @@ backtest.live = (pair, startTime)=>{
           backtest.readTickFile(pair, chunk, (err, data)=>{
             var chunkResult = [];
             var chunkData = data.split('\n');
-            for(var i=1;i<chunkData.length;i++){
+            for(let i=1;i<chunkData.length;i++){
               if(chunkData[i].length > 3){
                 var temp = chunkData[i].split(',');
                 temp[0] *= conf.public.backtestTimestampMultiplier;
@@ -88,7 +88,7 @@ backtest.live = (pair, startTime)=>{
               }
             }
             var curIndex;
-            for(var i=0;i<chunkResult.length;i++){
+            for(let i=0;i<chunkResult.length;i++){
               if(parseFloat(chunkResult[i][0]) > startTime){
                 curIndex = i-1;
                 break;
@@ -138,7 +138,7 @@ backtest.fast = (pair, startTime, diff)=>{
         fs.readFile(conf.public.tickDataDirectory + pair.toUpperCase() + '/index.csv', {encoding: 'utf8'}, 'r', (err,data)=>{
           var result = [];
           var indexData = data.split('\n');
-          for(var i=1;i<indexData.length;i++){
+          for(let i=1;i<indexData.length;i++){
             if(indexData[i].length > 3){
               var temp = indexData[i].split(',');
               temp[1] *= conf.public.backtestTimestampMultiplier;
@@ -147,7 +147,7 @@ backtest.fast = (pair, startTime, diff)=>{
             }
           }
           var chunk;
-          for(var i=0;i<result.length;i++){
+          for(let i=0;i<result.length;i++){
             if(parseFloat(result[i][2]) > startTime){
               chunk = parseFloat(result[i][0]);
               break;
@@ -156,7 +156,7 @@ backtest.fast = (pair, startTime, diff)=>{
           backtest.readTickFile(pair, chunk, (err, data)=>{
             var chunkResult = [];
             var chunkData = data.split('\n');
-            for(var i=1;i<chunkData.length;i++){
+            for(let i=1;i<chunkData.length;i++){
               if(chunkData[i].length > 3){
                 var temp = chunkData[i].split(',');
                 temp[0] *= conf.public.backtestTimestampMultiplier;
@@ -164,7 +164,7 @@ backtest.fast = (pair, startTime, diff)=>{
               }
             }
             var curIndex;
-            for(var i=0;i<chunkResult.length;i++){
+            for(let i=0;i<chunkResult.length;i++){
               if(parseFloat(chunkResult[i][0]) > startTime){
                 curIndex = i-1;
                 break;
@@ -204,7 +204,7 @@ backtest.fastSend = (chunk, chunkResult, curIndex, diff, oldTime, pair, client)=
       }
 
       if(!running){ //and it's been cancelled
-        console.log("Backtest for pair " + pair + " stopped.");
+        console.log(`Backtest for pair ${pair} stopped.`);
         return;
       }else{ //it's a check interval and hasn't been cancelled
         backtest.publishTick(pair, chunk, chunkResult, curIndex, diff, backtest.fastSend, client);
@@ -213,6 +213,15 @@ backtest.fastSend = (chunk, chunkResult, curIndex, diff, oldTime, pair, client)=
   }else{ //it's not a check interval
     backtest.publishTick(pair, chunk, chunkResult, curIndex, diff, backtest.fastSend, client);
   }
+};
+
+backtest.precalced = (pair, startTime, endTime)=>{
+  var client = redis.createClient();
+
+  var obj = {type: "precalced", pair: pair, startTime: startTime, endTime: endTime};
+  client.publish("backtestStatus", JSON.stringify(obj));
+
+  return `Precalced backtest successfully started for pair ${pair}`;
 };
 
 backtest.readTickFile = (pair, chunk, callback)=>{
