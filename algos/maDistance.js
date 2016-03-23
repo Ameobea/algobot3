@@ -11,8 +11,8 @@ var conf = require("../conf/conf");
 
 var maDist = exports;
 
-maDist.calc = function(pair, timestamp, maPeriod, maPrice, curAverages, db){
-  conf.public.monitoredAveragePeriods.forEach(function(monitoredAverage){
+maDist.calc = (pair, timestamp, maPeriod, maPrice, curAverages, db)=>{
+  conf.public.monitoredAveragePeriods.forEach(monitoredAverage=>{
     if(monitoredAverage >= maPeriod){
       var diff = maPrice - curAverages[pair][monitoredAverage][1];
       maDist.store(pair, timestamp, maPeriod, monitoredAverage, diff, db);
@@ -20,7 +20,7 @@ maDist.calc = function(pair, timestamp, maPeriod, maPrice, curAverages, db){
   });
 };
 
-maDist.store = function(pair, timestamp, maPeriod, compPeriod, diff, db){
+maDist.store = (pair, timestamp, maPeriod, compPeriod, diff, db)=>{
   var doc = {pair: pair, timestamp: timestamp, maPeriod: maPeriod, compPeriod: compPeriod, diff: diff};
-  db.collection("smaDists").insertOne(doc, function(res){});
+  db.collection("smaDists").insertOne(doc, res=>{});
 };

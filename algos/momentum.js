@@ -12,34 +12,34 @@ var conf = require("../conf/conf");
 var momentum = exports;
 
 //callback is called for each individual momentum calculated
-momentum.calcMany = function(pair, endTime, averagePeriod, momentumPeriods, db, callback, finalCallback){
-  var tasks = momentumPeriods.map(function(x){
-    return new Promise(function(fulfill, reject){
-      momentum.momentum(pair, endTime, averagePeriod, x, db, function(momentum, momentumPeriod){
+momentum.calcMany = (pair, endTime, averagePeriod, momentumPeriods, db, callback, finalCallback)=>{
+  var tasks = momentumPeriods.map(x=>{
+    return new Promise((fulfill, reject)=>{
+      momentum.momentum(pair, endTime, averagePeriod, x, db, (momentum, momentumPeriod)=>{
         fulfill(callback(momentumPeriod, momentum));
       });
     });
   });
-  Promise.all(tasks).then(function(x){
+  Promise.all(tasks).then(x=>{
     finalCallback();
-  }, function(x){
+  }, x=>{
     finalCallback();
   });
 };
 
-momentum.momentum = function(pair, endTime, averagePeriod, momentumPeriod, db, callback){
-  momentum.calc(pair, endTime-momentumPeriod, endTime, averagePeriod, db, function(momentumValue){
+momentum.momentum = (pair, endTime, averagePeriod, momentumPeriod, db, callback)=>{
+  momentum.calc(pair, endTime-momentumPeriod, endTime, averagePeriod, db, momentumValue=>{
     momentum.store(pair, averagePeriod, momentumPeriod, endTime, momentumValue, db, callback);
   });
 };
 
-momentum.calc = function(pair, startTime, endTime, averagePeriod, db, callback){
+momentum.calc = (pair, startTime, endTime, averagePeriod, db, callback)=>{
   var smas = db.collection("smas");
-  smas.find({pair: pair, period: averagePeriod, timestamp: {$lte: startTime}}).sort({timestamp: -1}).limit(1).toArray(function(err, firstAverage){
+  smas.find({pair: pair, period: averagePeriod, timestamp: {$lte: startTime}}).sort({timestamp: -1}).limit(1).toArray((err, firstAverage)=>{
     if(err){
       console.log(err);
     }else{
-      smas.find({pair: pair, period: averagePeriod, timestamp: endTime}).sort({timestamp: -1}).limit(1).toArray(function(err, lastAverage){
+      smas.find({pair: pair, period: averagePeriod, timestamp: endTime}).sort({timestamp: -1}).limit(1).toArray((err, lastAverage)=>{
         if(err || (firstAverage.length === 0 || lastAverage.length === 0)){
           //console.log("Momentum calculation can't find matching SMAS");
         }else{
@@ -52,10 +52,10 @@ momentum.calc = function(pair, startTime, endTime, averagePeriod, db, callback){
   });
 };
 
-momentum.store = function(pair, averagePeriod, momentumPeriod, timestamp, momentumValue, db, callback){
+momentum.store = (pair, averagePeriod, momentumPeriod, timestamp, momentumValue, db, callback)=>{
   var momentums = db.collection("momentums");
   var doc = {pair: pair, averagePeriod: averagePeriod, momentumPeriod: momentumPeriod, timestamp: timestamp, momentum: momentumValue};
-  momentums.insertOne(doc, function(err, res){
+  momentums.insertOne(doc, (err, res)=>{
     if(err){
       console.log(err);
     }else{

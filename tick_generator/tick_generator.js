@@ -17,8 +17,8 @@ var tickGenerator = exports;
 
 //TODO: Make it so that it only stores a tick once the previous tick
 //has finished being stored.
-tickGenerator.listen = function(){
-  dbUtil.mongoConnect(function(db){
+tickGenerator.listen = ()=>{
+  dbUtil.mongoConnect(db=>{
 
     var redisListenClient = redis.createClient();
     var redisPublishClient = redis.createClient();
@@ -29,12 +29,12 @@ tickGenerator.listen = function(){
     redisListenClient.subscribe("ticks");
 
     var tick;
-    redisListenClient.on("message", function(channel, message){
+    redisListenClient.on("message", (channel, message)=>{
       tick = JSON.parse(message);
 
       if(!prevTick.timestamp || prevTick.timestamp < tick.timestamp){ //only allow sane ticks through.
         if(conf.public.storeRawTicks){
-          tickGenerator.storeTick(tick.pair, tick.timestamp, tick.bid, tick.ask, db, function(){});
+          tickGenerator.storeTick(tick.pair, tick.timestamp, tick.bid, tick.ask, db, ()=>{});
         }
         if(conf.public.live == tick.real){// Ignore real ticks if we're backtesting, ignore backtests if we're live
           tick.price = (tick.bid+tick.ask)/2;
@@ -47,7 +47,7 @@ tickGenerator.listen = function(){
           storeQueue[tick.pair].push(tick);
           if(tick.timestamp > prevTick[tick.pair].timestamp+conf.public.priceResolution){ // it's time to calculate an average price
             storeQueue[tick.pair].unshift(prevTick[tick.pair]);
-            tickGenerator.calcPeriodAverage(storeQueue[tick.pair], tick.timestamp, redisPublishClient, db, function(average, prev){
+            tickGenerator.calcPeriodAverage(storeQueue[tick.pair], tick.timestamp, redisPublishClient, db, (average, prev)=>{
               prevTick[tick.pair] = prev;
               storeQueue[tick.pair] = [];
             });
@@ -58,10 +58,10 @@ tickGenerator.listen = function(){
   });
 };
 
-tickGenerator.calcPeriodAverage = function(ticks, curTime, redisClient, mongoClient, callback){
+tickGenerator.calcPeriodAverage = (ticks, curTime, redisClient, mongoClient, callback)=>{
   if(ticks.length > 0){
-    sma.rawCalc(ticks, curTime-1000, curTime, true, function(periodAverage){
-      tickGenerator.storePeriodAverage(ticks[0].pair, curTime, periodAverage, mongoClient, function(){
+    sma.rawCalc(ticks, curTime-1000, curTime, true, periodAverage=>{
+      tickGenerator.storePeriodAverage(ticks[0].pair, curTime, periodAverage, mongoClient, ()=>{
         var publishObject = {pair: ticks[0].pair, timestamp: curTime, price: periodAverage};
         redisClient.publish("prices", JSON.stringify(publishObject));
         callback(periodAverage, ticks[ticks.length-1]);
@@ -72,18 +72,18 @@ tickGenerator.calcPeriodAverage = function(ticks, curTime, redisClient, mongoCli
   }
 };
 
-tickGenerator.storePeriodAverage = function(pair, timestamp, secondAverage, db, callback){
+tickGenerator.storePeriodAverage = (pair, timestamp, secondAverage, db, callback)=>{
   var pricesCollection = db.collection("prices");
   var doc = {pair: pair, timestamp: timestamp, price: secondAverage};
-  pricesCollection.insertOne(doc, function(res){
+  pricesCollection.insertOne(doc, (res)=>{
     callback();
   });
 };
 
-tickGenerator.storeTick = function(pair, timestamp, bid, ask, db, callback){
+tickGenerator.storeTick = (pair, timestamp, bid, ask, db, callback)=>{
   var ticksCollection = db.collection("ticks");
   var doc = {pair: pair, timestamp: timestamp, bid: bid, ask: ask};
-  ticksCollection.insertOne(doc, function(res){
+  ticksCollection.insertOne(doc, (res)=>{
     callback();
   });
 }

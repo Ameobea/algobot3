@@ -1,0 +1,40 @@
+"use strict";
+/*
+Javascript for index page.
+*/
+$(document).ready(()=>{
+  var serverAddress = "http://<%= ip %>";
+
+  $("#backtestStartButton").click(()=>{
+    if($("#backtestTypeSelector option:selected").text().toLowerCase() == "fast"){
+      var requestAddress = serverAddress + "api/backtest/start/fast/" + $("#backtestStartPair").val();
+      $.post(requestAddress, {startTime: $("#backtestStartTime").val(), interval: $("#backtestSendInterval").val()});
+    }else{
+      var requestAddress = serverAddress + "api/backtest/start/live/" + $("#backtestStartPair").val();
+      $.post(requestAddress, {startTime: $("#backtestStartTime").val()});
+    }
+  });
+
+  $("#backtestStopButton").click(()=>{
+    var requestAddress = serverAddress + "api/backtest/stop/" + $("#backtestStopPair").val();
+    $.post(requestAddress);
+  });
+
+  $("#backtestStopAllButton").click(()=>{
+    var requestAddress = serverAddress + "api/backtest/stop/all";
+    $.post(requestAddress);
+  });
+
+  $("#dbFlush").click(()=>{
+    $.get("api/utils/dbFlush");
+  });
+
+  $("#dbDump").click(()=>{
+    $.get("api/utils/dbDump");
+  })
+
+  $("#dbRestore").click(()=>{
+    var restoreId = $("#dbRestoreId").val();
+    $.get("api/utils/dbRestore/" + restoreId);
+  });
+});

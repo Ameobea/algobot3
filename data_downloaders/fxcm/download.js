@@ -16,7 +16,7 @@ var conf = require("../../conf/conf");
 
 //unix timestamp format.
 var pair = "usdcad"; //like "usdcad"
-var startTime = 1456818155750; //like 1393826400 * 1000
+var startTime = 1452017368590; //like 1393826400 * 1000
 var endTime = 1457244000 * 1000;
 
 //time between data requests
@@ -32,12 +32,12 @@ var lastChunkIDs = [];
 var curStart;
 var curEnd;
 
-redisSubClient.on("message", function(channel, message){
+redisSubClient.on("message", (channel, message)=>{
   //console.log(message);
   var parsed = JSON.parse(message);
 
   if(parsed.error && parsed.error == "No ticks in range"){
-    setTimeout(function(){
+    setTimeout(()=>{
       lastChunkIDs.push(parsed.id);
       downloadData(lastTriedEndPrice, lastTriedEndPrice + 10000);
     }, downloadDelay);
@@ -52,31 +52,31 @@ redisSubClient.on("message", function(channel, message){
       lastChunkIDs.shift()
     }
 
-    parsed.data.forEach(function(tick){
+    parsed.data.forEach(tick=>{
       storeTick(tick);
     });
 
-    setTimeout(function(){
+    setTimeout(()=>{
       downloadData(lastTriedEndPrice, lastTriedEndPrice + 10000);
     }, downloadDelay);
   }
 });
 
 //if no reply from server in 1.5 seconds, assume it's not coming and start over.
-var responseWaiter = function(chunkID){
+var responseWaiter = chunkID=>{
   if(lastChunkIDs.indexOf(chunkID) == -1){ //if we haven't recieved a tick from the current segment yet
     console.log(chunkID + " not in array; Resending data request...");
     downloadData(curStart, curEnd); //re-send request for that segment
   }
 };
 
-var responseWaiterCaller = function(oldID){
-  setTimeout(function(){
+var responseWaiterCaller = oldID=>{
+  setTimeout(()=>{
     responseWaiter(oldID);
   }, 25000);
 };
 
-var downloadData = function(start, end){
+var downloadData = (start, end)=>{
   curStart = start;
   curEnd = end;
   lastTriedEndPrice = end;
@@ -85,8 +85,8 @@ var downloadData = function(start, end){
   redisPubclient.publish("priceRequests", JSON.stringify(toSend));
 };
 
-var initFile = function(pair, callback){
-  fs.writeFile(conf.private.tickRecorderOutputPath + pair + ".csv", "timestamp, bid, ask", function(err, res){
+var initFile = (pair, callback)=>{
+  fs.writeFile(conf.private.tickRecorderOutputPath + pair + ".csv", "timestamp, bid, ask", (err, res)=>{
     callback();
   });
 };
@@ -94,7 +94,7 @@ var initFile = function(pair, callback){
 var existingFiles = {};
 var toAppend;
 
-var storeTick = function(tick){
+var storeTick = (tick)=>{
   if(lastTick.timestamp >= tick.timestamp){ //don't store out-of-order ticks
     return;
   }
@@ -104,11 +104,11 @@ var storeTick = function(tick){
     process.exit(0);
   }
 
-  new Promise(function(fulfill, reject){
+  new Promise((fulfill, reject)=>{
     if(!existingFiles[pair]){
-      fs.stat(conf.private.tickRecorderOutputPath + pair + ".csv", function(err, res){
+      fs.stat(conf.private.tickRecorderOutputPath + pair + ".csv", (err, res)=>{
         if(err){
-          initFile(pair, function(){
+          initFile(pair, ()=>{
             existingFiles[pair] = true;
             fulfill();
           });
@@ -120,15 +120,15 @@ var storeTick = function(tick){
     }else{
       fulfill();
     }
-  }).then(function(){
+  }).then(()=>{
     lastTick = tick;
 
     toAppend = "\n" + tick.timestamp + ", " + tick.bid + ", " + tick.ask;
-    fs.appendFile(conf.private.tickRecorderOutputPath + pair + ".csv", toAppend, function(err, res){});
+    fs.appendFile(conf.private.tickRecorderOutputPath + pair + ".csv", toAppend, (err, res)=>{});
   });
 };
 
-var formatPair = function(rawPair){
+var formatPair = rawPair=>{
   var currencyOne = rawPair.toUpperCase().substring(0,3);
   var currencyTwo = rawPair.toUpperCase().substring(3,6);
   return currencyOne + "/" +  currencyTwo;

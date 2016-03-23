@@ -10,13 +10,13 @@ var lastHTML;
 
 //TODO: Add in live updating.
 
-var getData = function(pair, type, props, range, callback){
-  $.post("http://<%= ip %>" + "api/data/" + pair + "/" + type + "/" + range, {props: JSON.stringify(props)}, function(res){
+var getData = (pair, type, props, range, callback)=>{
+  $.post("http://<%= ip %>" + "api/data/" + pair + "/" + type + "/" + range, {props: JSON.stringify(props)}, (res)=>{
     callback(JSON.parse(res));
   });
 };
 
-var resetAndUpdate = function(range, callback){
+var resetAndUpdate = (range, callback)=>{
   clearChart(mainGraph);
 
   var pair = $("#pairInput").val();
@@ -24,12 +24,12 @@ var resetAndUpdate = function(range, callback){
   
   var averages = [];
   var averageBoxes = [].slice.call($(".averageInput"));
-  averageBoxes.forEach(function(box){
+  averageBoxes.forEach((box)=>{
     averages.push(box.value);
   });
   var momentums = [];
   var momentumBoxes = [].slice.call($(".momentumInput"));
-  momentumBoxes.forEach(function(box){
+  momentumBoxes.forEach((box)=>{
     if(box.value !== ""){
       momentums.push(box.value);
     }
@@ -42,8 +42,8 @@ var resetAndUpdate = function(range, callback){
 
   if(loadTicks){
     tickData.data.push(
-      new Promise(function(fulfill, reject){
-        getData(pair, "ticks", {}, range, function(tickData){
+      new Promise((fulfill, reject)=>{
+        getData(pair, "ticks", {}, range, (tickData)=>{
           fulfill(tickData);
         });
       })
@@ -51,28 +51,28 @@ var resetAndUpdate = function(range, callback){
   }
 
   priceData.data.push(
-    new Promise(function(fulfill, reject){
-      getData(pair, "prices", {}, range, function(priceData){
+    new Promise((fulfill, reject)=>{
+      getData(pair, "prices", {}, range, (priceData)=>{
         fulfill(priceData);
       });
     })
   );
 
-  averages.forEach(function(period){
+  averages.forEach((period)=>{
     averageData.data.push(
-      new Promise(function(fulfill, reject){
-        getData(pair, "smas", {period: parseInt(period)}, range, function(smaData){
+      new Promise((fulfill, reject)=>{
+        getData(pair, "smas", {period: parseInt(period)}, range, (smaData)=>{
           fulfill(smaData);
         });
       })
     );
   });
 
-  momentums.forEach(function(params){
+  momentums.forEach((params)=>{
     params = params.split(",");
     momentumData.data.push(
-      new Promise(function(fulfill, reject){
-        getData(pair, "momentums", {averagePeriod: parseInt(params[0]), momentumPeriod: parseInt(params[1])}, range, function(momentumData){
+      new Promise((fulfill, reject)=>{
+        getData(pair, "momentums", {averagePeriod: parseInt(params[0]), momentumPeriod: parseInt(params[1])}, range, (momentumData)=>{
           fulfill(momentumData);
         });
       })
@@ -85,10 +85,10 @@ var resetAndUpdate = function(range, callback){
   }
   var finalPromiseArray = [];
 
-  toPromisify.forEach(function(promiseObject){
+  toPromisify.forEach((promiseObject)=>{
     finalPromiseArray.push(
-      new Promise(function(fulfill, reject){
-        Promise.all(promiseObject.data).then(function(values){// evalulate one of the three promise arrays
+      new Promise((fulfill, reject)=>{
+        Promise.all(promiseObject.data).then((values)=>{// evalulate one of the three promise arrays
           fulfill(values);
         });
       })
@@ -96,7 +96,7 @@ var resetAndUpdate = function(range, callback){
   });
 
   //TODO: Reduce number of points that are plotted to make it easier on client cpu
-  drawSeries(finalPromiseArray).then(function(){
+  drawSeries(finalPromiseArray).then(()=>{
     var stripePeriod = parseInt($("#maxMinStripePeriod").val());
 
     var compUpPeriods = $("#compUpPeriods").val();
@@ -107,10 +107,10 @@ var resetAndUpdate = function(range, callback){
     var realCompUpPeriods = [];
     var realCompDnPeriods = [];
 
-    compUpPeriods.forEach(function(pd2){
+    compUpPeriods.forEach((pd2)=>{
       realCompUpPeriods.push(parseInt(pd2));
     });
-    compDnPeriods.forEach(function(pd2){
+    compDnPeriods.forEach((pd2)=>{
       realCompDnPeriods.push(parseInt(pd2));
     });
 
@@ -120,7 +120,7 @@ var resetAndUpdate = function(range, callback){
     drawCrossBands(pair, range, stripePeriod, realCompUpPeriods, realCompDnPeriods, drawDownBands, drawUpBands);
 
     var smaDistPeriod     = $("#smaDistInput").val();
-    var smaDistCompPeriod = $(".smaDistCompInput").val().split(",").map(function(x){return parseInt(x);});
+    var smaDistCompPeriod = $(".smaDistCompInput").val().split(",").map((x)=> parseInt(x));
 
     drawSMADistGraph(pair, range, smaDistPeriod, smaDistCompPeriod);
 
@@ -137,7 +137,7 @@ var drawTrades = function(pair, range){
     });
     tradeIterator(filtered);
   });
-}
+};
 
 var tradeIterator = function(trades){
   if(trades.length > 0){
@@ -154,7 +154,7 @@ var tradeIterator = function(trades){
       //TODO: draw trade line to current price
     }
   }
-}
+};
 
 var drawTradeLine = function(startTime, stopTime, startPrice, stopPrice, direction){
   var color;
@@ -168,7 +168,7 @@ var drawTradeLine = function(startTime, stopTime, startPrice, stopPrice, directi
   series.data = [[startTime * 1000, startPrice], [stopTime * 1000, stopPrice]];
 
   mainGraph.addSeries(series);
-}
+};
 
 var drawSMADistGraph = function(pair, range, distPeriod, distCompPeriods){
   var params = {pair: pair, maPeriod: parseInt(distPeriod), $or: []};
@@ -211,24 +211,24 @@ var mapColors = function(compPeriods){
   return colorArray;
 };
 
-var drawCrossBands = function(pair, range, stripePeriod, compUpPeriods, compDownPeriods, drawDownBands, drawUpBands){
+var drawCrossBands = (pair, range, stripePeriod, compUpPeriods, compDownPeriods, drawDownBands, drawUpBands)=>{
   //TODO: Make it so that you can draw up bands for one compPeriod and down bands for a different compPeriod
   //TODO: See if you can make them transluscent or something better than using zindexes
   var params = {period: stripePeriod, $or: []};
 
-  compUpPeriods.forEach(function(pd){
+  compUpPeriods.forEach(pd=>{
     params.$or.push({compPeriod: pd});
   });
 
-  compDownPeriods.forEach(function(pd){
+  compDownPeriods.forEach(pd=>{
     params.$or.push({compPeriod: pd});
   });
 
-  getData(pair, "smaCrosses", params, range, function(crossData){
+  getData(pair, "smaCrosses", params, range, (crossData)=>{
     if(crossData.length > 0){
       var includedCompPeriods = [];
 
-      crossData.forEach(function(cross){
+      crossData.forEach(cross=>{
         if(includedCompPeriods.indexOf(cross.compPeriod) == -1){
           includedCompPeriods.push(cross.compPeriod);
         }
@@ -237,7 +237,7 @@ var drawCrossBands = function(pair, range, stripePeriod, compUpPeriods, compDown
       includedCompPeriods.sort().reverse();
       var colorsMap = mapColors(includedCompPeriods);
 
-      crossData.forEach(function(cross, index){
+      crossData.forEach((cross, index)=>{
         var pairIndex = false;
 
         for(var i=index+1;i<crossData.length;i++){
@@ -271,31 +271,31 @@ var drawCrossBands = function(pair, range, stripePeriod, compUpPeriods, compDown
   });
 };
 
-var drawSeries = function(finalPromiseArray_){
-  return Promise.all(finalPromiseArray_).then(function(finalValues){ //prices, smas, momentums
+var drawSeries = finalPromiseArray_=>{
+  return Promise.all(finalPromiseArray_).then((finalValues)=>{ //prices, smas, momentums
 
-    finalValues[0].forEach(function(priceArray){
+    finalValues[0].forEach(priceArray=>{
       var priceSeries = {data: [], yAxis: "priceAverageAxis", name: "Price"};
-      priceArray.forEach(function(price){
+      priceArray.forEach(price=>{
         priceSeries.data.push([price.timestamp * 1000, price.price]);
       });
       mainGraph.addSeries(priceSeries);
     });
 
-      finalValues[1].forEach(function(smaArray){
+      finalValues[1].forEach(smaArray=>{
         if(smaArray.length > 0){
           var smaSeries = {data: [], yAxis: "priceAverageAxis", name: "Period " + smaArray[0].period + " Average"};
-          smaArray.forEach(function(sma){
+          smaArray.forEach(sma=>{
             smaSeries.data.push([sma.timestamp * 1000, sma.value]);
           });
           mainGraph.addSeries(smaSeries);
         }
       });
 
-    finalValues[2].forEach(function(momentumArray){
+    finalValues[2].forEach(momentumArray=>{
       if(momentumArray.length > 0){
         var momentumSeries = {data: [], yAxis: "momentumAxis", name: "Period " + momentumArray[0].averagePeriod + "," + momentumArray[0].momentumPeriod + " Momentum", type: "area"};
-        momentumArray.forEach(function(momentum){
+        momentumArray.forEach(momentum=>{
           momentumSeries.data.push([momentum.timestamp * 1000, momentum.momentum]);
         });
         momentumGraph.addSeries(momentumSeries);
@@ -303,11 +303,11 @@ var drawSeries = function(finalPromiseArray_){
     });
 
     if(finalValues[3]){
-      finalValues[3].forEach(function(tickArray){
+      finalValues[3].forEach(tickArray=>{
         if(tickArray.length > 0){
           var tickBidSeries = {data: [], yAxies: "priceAverageAxis", name: "Raw Bids"};
           var tickAskSeries = {data: [], yAxies: "priceAverageAxis", name: "Raw Asks"};
-          tickArray.forEach(function(tick){
+          tickArray.forEach(tick=>{
             tickBidSeries.data.push([tick.timestamp * 1000, tick.bid]);
             tickAskSeries.data.push([tick.timestamp * 1000, tick.ask]);
           });
@@ -319,7 +319,7 @@ var drawSeries = function(finalPromiseArray_){
   });
 };
 
-var clearChart = function(chart){
+var clearChart = chart=>{
   while(mainGraph.series.length > 0)
     mainGraph.series[0].remove(true);
   while(momentumGraph.series.length > 0)
@@ -329,15 +329,15 @@ var clearChart = function(chart){
   mainGraph.xAxis[0].removePlotBand("band");
 };
 
-var setupConfigListeners = function(){
-  $(".averageExtend").off().click(function(){
+var setupConfigListeners = ()=>{
+  $(".averageExtend").off().click(()=>{
     buttonHTML = '<input type="button" class="averageRemove" value="Remove One"><input type="button" class="averageExtend" value="Add Another">';
     oldHTML = $("#averages").html().split(buttonHTML)[0];
     $("#averages").html(oldHTML + '<input type="text" class="averageInput"><br>\n' + buttonHTML);
     setupConfigListeners();
   });
 
-  $(".averageRemove").off().click(function(){
+  $(".averageRemove").off().click(()=>{
     buttonHTML = '<input type="button" class="averageRemove" value="Remove One"><input type="button" class="averageExtend" value="Add Another">';
     lastHTML = '<input type="text" class="averageInput"><br>\n' + buttonHTML;
     oldHTML = $("#averages").html().split(lastHTML)[0];
@@ -345,14 +345,14 @@ var setupConfigListeners = function(){
     setupConfigListeners();
   });
 
-  $(".momentumExtend").off().click(function(){
+  $(".momentumExtend").off().click(()=>{
     buttonHTML = '<input type="button" class="momentumRemove" value="Remove One"><input type="button" class="momentumExtend" value="Add Another">';
     oldHTML = $("#momentums").html().split(buttonHTML)[0];
     $("#momentums").html(oldHTML + '<input type="text" class="momentumInput"><br>\n' + buttonHTML);
     setupConfigListeners();
   });
 
-  $(".momentumRemove").off().click(function(){
+  $(".momentumRemove").off().click(()=>{
     var buttonHTML = '<input type="button" class="momentumRemove" value="Remove One"><input type="button" class="momentumExtend" value="Add Another">';
     var lastHTML = '<input type="text" class="momentumInput"><br>\n' + buttonHTML;
     var oldHTML = $("#momentums").html().split(lastHTML)[0];
@@ -360,7 +360,7 @@ var setupConfigListeners = function(){
     setupConfigListeners();
   });
 
-  $(".smaDistCompExtend").off().click(function(){
+  $(".smaDistCompExtend").off().click(()=>{
     var buttonHTML = '<input type="button" class="smaDistCompRemove" value="Remove One"><input type="button" class="smaDistCompExtend" value="Add Another">';
     var lastHTML = '<input type="text" class="smaDistCompInput"><br>\n' + buttonHTML;
     var oldHTML = $("#momentums").html().split(lastHTML)[0];
@@ -368,7 +368,7 @@ var setupConfigListeners = function(){
     setupConfigListeners();
   });
 
-  $(".smaDistCompRemove").off().click(function(){
+  $(".smaDistCompRemove").off().click(()=>{
     var buttonHTML = '<input type="button" class="smaDistCompRemove" value="Remove One"><input type="button" class="smaDistCompExtend" value="Add Another">';
     var lastHTML = '<input type="text" class="smaDistCompInput"><br>\n' + buttonHTML;
     var oldHTML = $("#momentums").html().split(lastHTML)[0];
@@ -376,12 +376,12 @@ var setupConfigListeners = function(){
     setupConfigListeners();
   });
 
-  $("#update").off().click(function(){
+  $("#update").off().click(()=>{
     resetAndUpdate(parseInt($("#timeRange").val()));
   });
 };
 
-$(document).ready(function(){
+$(document).ready(()=>{
   mainGraph = new Highcharts.Chart({
     chart: {
       renderTo: 'mainGraph',

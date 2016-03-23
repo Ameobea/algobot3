@@ -23,8 +23,8 @@ var core = exports;
 var curAverages = {};
 var curMomentums = {};
 
-core.start = function(){
-  dbUtil.mongoConnect(function(db){
+core.start = ()=>{
+  dbUtil.mongoConnect(db=>{
     var toMomentum = [];
     var toAverage = [];
     var timestamp;
@@ -34,7 +34,7 @@ core.start = function(){
     var redisClient = redis.createClient();
     redisClient.subscribe("prices");
 
-    redisClient.on("message", function(channel, message){
+    redisClient.on("message", (channel, message)=>{
       priceUpdate = JSON.parse(message);
 
       var pair = priceUpdate.pair;
@@ -46,7 +46,7 @@ core.start = function(){
 
       toAverage = [];
 
-      conf.public.monitoredAveragePeriods.forEach(function(monitoredPeriod){
+      conf.public.monitoredAveragePeriods.forEach((monitoredPeriod)=>{
         if(curAverages[pair][monitoredPeriod]){
           if((timestamp - curAverages[pair][monitoredPeriod][0]) > monitoredPeriod/conf.public.averageCalcResolution){ //calc average if the time that has passed > 1/4 its period
             toAverage.push(monitoredPeriod);
@@ -57,21 +57,21 @@ core.start = function(){
       });
 
       var calced = [];
-      new Promise(function(fulfill, reject){
-        core.calcAverages(priceUpdate, toAverage, db, function(average, averagePeriod){
-          maCross.calc(pair, curAverages, averagePeriod, average, timestamp, db, function(newCrosses){
+      new Promise((fulfill, reject)=>{
+        core.calcAverages(priceUpdate, toAverage, db, (average, averagePeriod)=>{
+          maCross.calc(pair, curAverages, averagePeriod, average, timestamp, db, (newCrosses)=>{
             core.storeLocalAverages(pair, averagePeriod, timestamp, average);
 
             calced.push({period: averagePeriod, average: average});
             if(calced.length == toAverage.length){
-              calced.forEach(function(calc){
+              calced.forEach(calc=>{
                 maDist.calc(pair, timestamp, calc.period, calc.average, curAverages, db);
               });
             }
             // Averages updated
 
             toMomentum = [];
-            conf.public.monitoredMomentumPeriods.forEach(function(monitoredMomentumPeriod){
+            conf.public.monitoredMomentumPeriods.forEach((monitoredMomentumPeriod)=>{
               if(curMomentums[pair] && curMomentums[pair][averagePeriod] && curMomentums[pair][averagePeriod][monitoredMomentumPeriod]){
                 if((timestamp - curMomentums[pair][averagePeriod][monitoredMomentumPeriod][0]) > monitoredMomentumPeriod/conf.public.momentumCalcResolution){
                   toMomentum.push(monitoredMomentumPeriod);
@@ -81,14 +81,14 @@ core.start = function(){
               }
             });
 
-            core.calcMomentums(priceUpdate, parseInt(averagePeriod), toMomentum, db, function(momentum, momentumPeriod){
+            core.calcMomentums(priceUpdate, parseInt(averagePeriod), toMomentum, db, (momentum, momentumPeriod)=>{
               core.storeLocalMomentums(pair, averagePeriod, momentumPeriod, timestamp, momentum);
-            }, function(){
+            }, ()=>{
               fulfill([pair, newCrosses]);
             });
           });
         });
-      }).then(function(res){//after all averages + momentums are calculated
+      }).then(res=>{//after all averages + momentums are calculated
         tradeGen.eachTick(res[0], timestamp, curMomentums[pair], res[1], db);
       });
     });
@@ -96,26 +96,26 @@ core.start = function(){
 };
 
 //Returns the period of the average that was calculated
-core.calcAverages = function(priceUpdate, averagePeriods, db, callback){
+core.calcAverages = (priceUpdate, averagePeriods, db, callback)=>{
   //TODO: Don't do accurate calculations for averages where the period is large enough to make the added accuracy negligable
-  sma.averageMany(priceUpdate.pair, priceUpdate.timestamp, averagePeriods, db, function(average, pd){
+  sma.averageMany(priceUpdate.pair, priceUpdate.timestamp, averagePeriods, db, (average, pd)=>{
     callback(average, pd);
   });
 };
 
 
-core.calcMomentums = function(priceUpdate, averagePeriod, momentumPeriods, db, callback, finalCallback){
-  momentumCalc.calcMany(priceUpdate.pair, priceUpdate.timestamp, averagePeriod, momentumPeriods, db, function(momentumPeriod, momentum){
+core.calcMomentums = (priceUpdate, averagePeriod, momentumPeriods, db, callback, finalCallback)=>{
+  momentumCalc.calcMany(priceUpdate.pair, priceUpdate.timestamp, averagePeriod, momentumPeriods, db, (momentumPeriod, momentum)=>{
     callback(momentum, momentumPeriod);
   }, finalCallback);
 };
 
-core.storeLocalAverages = function(pair_, averagePeriod_, timestamp_, average_){
+core.storeLocalAverages = (pair_, averagePeriod_, timestamp_, average_)=>{
   averagePeriod_ = averagePeriod_.toString();
   curAverages[pair_][averagePeriod_] = [timestamp_, average_];
 };
 
-core.storeLocalMomentums = function(pair_, averagePeriod_, momentumPeriod_, timestamp_, momentum_){
+core.storeLocalMomentums = (pair_, averagePeriod_, momentumPeriod_, timestamp_, momentum_)=>{
   momentumPeriod_ = momentumPeriod_.toString();
 
   if(!curMomentums[pair_]){

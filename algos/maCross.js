@@ -13,7 +13,7 @@ var maCross = exports;
 var crossStatuses = {};
 //TODO: Change so that instead of watching for actual crosses, watch the distance between two smas.
 
-maCross.initCrossStatuses = function(pair, period, compPeriod, status){
+maCross.initCrossStatuses = (pair, period, compPeriod, status)=>{
   if(!crossStatuses[pair]){
     crossStatuses[pair] = {};
   }
@@ -25,10 +25,10 @@ maCross.initCrossStatuses = function(pair, period, compPeriod, status){
   }
 }
 
-maCross.calc = function(pair, lastAverages, newAveragePeriod, newAverage, timestamp, db, callback){
+maCross.calc = (pair, lastAverages, newAveragePeriod, newAverage, timestamp, db, callback)=>{
   var changes = [];
 
-  conf.public.monitoredAveragePeriods.forEach(function(monitoredPeriod){
+  conf.public.monitoredAveragePeriods.forEach(monitoredPeriod=>{
     if(lastAverages[pair] && lastAverages[pair][newAveragePeriod.toString()] && monitoredPeriod >= newAveragePeriod){
       var curStatus = (newAverage > lastAverages[pair][monitoredPeriod.toString()][1]);
 
@@ -46,9 +46,9 @@ maCross.calc = function(pair, lastAverages, newAveragePeriod, newAverage, timest
   callback(changes);
 }
 
-maCross.storeCross = function(pair, timestamp, period, compPeriod, direction, db){
+maCross.storeCross = (pair, timestamp, period, compPeriod, direction, db)=>{
   var crosses = db.collection("smaCrosses");
   var doc = {pair: pair, timestamp: timestamp, period: period, compPeriod: compPeriod, direction: direction};
   
-  crosses.insertOne(doc, function(res){});
+  crosses.insertOne(doc, (res)=>{});
 }

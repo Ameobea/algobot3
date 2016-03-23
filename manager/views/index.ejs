@@ -2,28 +2,7 @@
 <head>
   <title>Ameobot Management Console</title>
   <script type="text/javascript" src="http://code.jquery.com/jquery-1.10.1.js"></script>
-  <script>
-  $(document).ready(function(){
-    var serverAddress = "http://<%= ip %>";
-    $("#backtestStartButton").click(function(){
-      if($("#backtestTypeSelector option:selected").text().toLowerCase() == "fast"){
-        var requestAddress = serverAddress + "api/backtest/start/fast/" + $("#backtestStartPair").val();
-        $.post(requestAddress, {startTime: $("#backtestStartTime").val(), interval: $("#backtestSendInterval").val()});
-      }else{
-        var requestAddress = serverAddress + "api/backtest/start/live/" + $("#backtestStartPair").val();
-        $.post(requestAddress, {startTime: $("#backtestStartTime").val()});
-      }
-    });
-    $("#backtestStopButton").click(function(){
-      var requestAddress = serverAddress + "api/backtest/stop/" + $("#backtestStopPair").val();
-      $.post(requestAddress);
-    });
-    $("#backtestStopAllButton").click(function(){
-      var requestAddress = serverAddress + "api/backtest/stop/all";
-      $.post(requestAddress);
-    })
-  });
-  </script>
+  <script src="sources/index_script.js"></script>
 </head>
 <body>
   <h1>Bot Admin Functions</h1>
@@ -38,7 +17,9 @@
   <h2>Stop Backtests</h2>
   <b>Currency Pair:  </b><input type="text" value="usdcad" id="backtestStopPair">
   <br><input type="button" value="Stop" id="backtestStopButton">  <input type="button" value="Stop All" id="backtestStopAllButton">
-  <h1>Command Output</h1>
-  <div id="commandOutput"></div>
+  <hr>
+  <h1>Database Utils</h1>
+  <input type="button" value="Flush Database" id="dbFlush"><input type="button" value="Dump Database" id="dbDump"><br>
+  <input type="text" placeholder="Dump ID" id="dbRestoreId"><input type="button" value="Restore Database Dump" id="dbRestore">
 </body>
 </html>

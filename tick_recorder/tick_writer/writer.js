@@ -13,8 +13,8 @@ var conf = require("../../conf/conf");
 var redisClient = redis.createClient();
 redisClient.subscribe("ticks");
 
-var initFile = function(pair, callback){
-  fs.writeFile(conf.private.tickWriterOutputPath + pair + ".csv", "timestamp, bid, ask", function(err, res){
+var initFile = (pair, callback)=>{
+  fs.writeFile(conf.private.tickWriterOutputPath + pair + ".csv", "timestamp, bid, ask", (err, res)=>{
     callback();
   });
 };
@@ -22,15 +22,15 @@ var initFile = function(pair, callback){
 var existingFiles = {};
 
 var parsed;
-redisClient.on("message", function(channel, message){
+redisClient.on("message", (channel, message)=>{
   parsed = JSON.parse(message);
 
   if(parsed.real){
-    new Promise(function(fulfill, reject){
+    new Promise((fulfill, reject)=>{
       if(!existingFiles[parsed.pair]){
-        fs.stat(conf.private.tickWriterOutputPath + parsed.pair + ".csv", function(err, stat){
+        fs.stat(conf.private.tickWriterOutputPath + parsed.pair + ".csv", (err, stat)=>{
           if(err){
-            initFile(parsed.pair, function(){
+            initFile(parsed.pair, ()=>{
               existingFiles[parsed.pair] = true;
               fulfill();
             });
@@ -42,9 +42,9 @@ redisClient.on("message", function(channel, message){
       }else{
         fulfill();
       }
-    }).then(function(){
+    }).then(()=>{
       var appendString = "\n" + parsed.timestamp.toString() + ", " + parsed.bid.toString() + ", " + parsed.ask.toString();
-      fs.appendFile(conf.private.tickWriterOutputPath + parsed.pair + ".csv", appendString, function(err, res){});
+      fs.appendFile(conf.private.tickWriterOutputPath + parsed.pair + ".csv", appendString, (err, res)=>{});
     });
   }
 });

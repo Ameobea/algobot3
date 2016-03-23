@@ -1,4 +1,5 @@
 {
   "esnext": true,
-  "unused": "vars"
+  "unused": "vars",
+  "esnext": true
 }

@@ -3,7 +3,7 @@ var downloadUtils = {};
 // https://www.dukascopy.com/datafeed/AUDUSD/2012/09/02/06h_ticks.bi5
 // https://www.dukascopy.com/datafeed/AUDUSD/2012/09/02/06_ticks.bi5 
 
-downloadUtils.str2ab = function(str) {
+downloadUtils.str2ab = str=>{
   var buf = new ArrayBuffer(str.length*2); // 2 bytes for each char
   var bufView = new Uint16Array(buf);
   for (var i=0, strLen=str.length; i<strLen; i++) {
@@ -12,7 +12,7 @@ downloadUtils.str2ab = function(str) {
   return buf;
 }
 
-downloadUtils.downloadHour = function(ticker, year, month, day, hour){
+downloadUtils.downloadHour = (ticker, year, month, day, hour)=>{
   //console.log(day, hour);
   if(year.toString().length == 1){
     year = "0"+year.toString();
@@ -30,7 +30,7 @@ downloadUtils.downloadHour = function(ticker, year, month, day, hour){
   res.open('GET', "https://www.dukascopy.com/datafeed/"+ticker+"/"+year+"/"+month+"/"+day+"/"+hour+"h_ticks.bi5", true);
   res.responseType = 'arraybuffer';
 
-  res.onload = function(e){
+  res.onload = e=>{
     if(this.status == 200){
       var data = new DataView(this.response);
       saveAs(new Blob([this.response], {type: "application/x-lzma"}), ticker+"/"+year+"/"+month+"/"+day+"/"+hour+"h_ticks.lzma")
@@ -44,8 +44,8 @@ downloadUtils.downloadHour = function(ticker, year, month, day, hour){
   /*res = $.get("https://www.dukascopy.com/datafeed/"+ticker+"/"+year+"/"+month+"/"+day+"/"+hour+"h_ticks.bi5");*/
 }
 
-downloadUtils.batch = function(ticker, year, month, day, hour){
-  setTimeout(function(){
+downloadUtils.batch = (ticker, year, month, day, hour)=>{
+  setTimeout(()=>{
     downloadUtils.downloadHour(ticker, year, month, day, hour);
     hour++;
     if(hour > 23){
@@ -68,8 +68,8 @@ downloadUtils.batch = function(ticker, year, month, day, hour){
   }, 1000);
 }
 
-downloadUtils.downloadMo0 = function(ticker, year, month, day, hour){
-  setTimeout(function(){
+downloadUtils.downloadMo0 = (ticker, year, month, day, hour)=>{
+  setTimeout(()=>{
     downloadUtils.downloadHour(ticker, year, month, day, hour);
     hour++;
     if(hour > 23){

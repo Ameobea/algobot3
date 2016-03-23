@@ -16,37 +16,37 @@ var sma = exports;
 
 //calculates multiple averages at different periods from one end time
 //callback is called for each individual average calculated
-sma.averageMany = function(pair, timestamp, periods, db, callback, finalCallback){
+sma.averageMany = (pair, timestamp, periods, db, callback, finalCallback)=>{
   var calced = [];
-  var tasks = periods.map(function(x){
-    return new Promise(function(fulfill, reject){
-      sma.average(pair, timestamp, x, db, function(average, averagePeriod){
+  var tasks = periods.map(x=>{
+    return new Promise((fulfill, reject)=>{
+      sma.average(pair, timestamp, x, db, (average, averagePeriod)=>{
         calced.push({period: averagePeriod, average: average});
         fulfill(callback(average, averagePeriod));
       });
     });
   });
-  Promise.all(tasks).then(function(calced){
+  Promise.all(tasks).then(calced=>{
     finalCallback(calced);
   });
 }
 
 //pull prices from database and calculate average; then store.
-sma.average = function(pair, timestamp, period, db, callback){
-  sma.calc(pair, timestamp-period, timestamp, conf.public.accurateSMA, db, function(average){
-    sma.store(pair, timestamp, period, average, db, function(){callback(average, period)});
+sma.average = (pair, timestamp, period, db, callback)=>{
+  sma.calc(pair, timestamp-period, timestamp, conf.public.accurateSMA, db, average=>{
+    sma.store(pair, timestamp, period, average, db, ()=>callback(average, period));
   });
 };
 
 //pulls prices from database and calculates average
-sma.calc = function(pair, startTime, endTime, accurate, db, callback){
-  priceUtils.getPricesInRange(pair, startTime, endTime, conf.public.accurateSMA, db, function(prices){
+sma.calc = (pair, startTime, endTime, accurate, db, callback)=>{
+  priceUtils.getPricesInRange(pair, startTime, endTime, conf.public.accurateSMA, db, prices=>{
     sma.rawCalc(prices, startTime, endTime, accurate, callback);
   });
 };
 
 //calculates average on array of prices
-sma.rawCalc = function(prices, startTime, endTime, accurate, callback){
+sma.rawCalc = (prices, startTime, endTime, accurate, callback)=>{
   if((prices.length > 0 && accurate === false) || (prices.length > 1 && accurate === true)){
     if((prices.length > 1 && accurate === false) || (prices.length > 2 && accurate === true)){
       var total = 0;
@@ -75,10 +75,10 @@ sma.rawCalc = function(prices, startTime, endTime, accurate, callback){
 };
 
 //stores average in database
-sma.store = function(pair, timestamp, period, value, db, callback){
+sma.store = (pair, timestamp, period, value, db, callback)=>{
   var smas = db.collection("smas");
   var doc = {pair: pair, period: period, timestamp: timestamp, value: value};
-  smas.insertOne(doc, function(res){
+  smas.insertOne(doc, res=>{
     if(conf.public.pubSmas){
       gRedis.publish("smas", JSON.stringify(doc));
     }
