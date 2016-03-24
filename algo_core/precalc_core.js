@@ -67,7 +67,8 @@ core.iterPrices = (dbData, pair, db, index, pricesCollection, momentumCollection
     return;
   }
 
-  console.log(`${index}/${pricesCollection.length}`);//TODO: don't load old trade history in db dumps
+  //console.log(`${index}/${pricesCollection.length}`);
+  //TODO: don't load old trade history in db dumps
 
   var priceUpdate = pricesCollection[index];
 

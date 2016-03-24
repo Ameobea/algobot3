@@ -18,9 +18,9 @@ Exit Price/condition data can take a variety of forms.  For some trades, it may 
 Keeps track of open trades and balance for the trading account.  Either uses broker API or simulates a ledger.  
 
 ### Trade Manager
-Implements an investment strategy to determine how large to make positions and how to manage positions while they're open.  Will talk to the ledger to determine necessary data about balance.  
+This is the system responsible for managing open positions and performing actions such as closing or enlarging them.  
 
-Also manages open positions and increases/reduces position size dynamically, if configured.
+For each of the open positions in the mongodb collection `openPositions`, there is a sub-document called `manager` that contains information on how to manage that position.  See trademanagers.md for more info about this.
 
 ## Trade Logger
 Records data about executed trades and the conditions that led to their executions.  Can also log things like total profit so far, etc.

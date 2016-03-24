@@ -17,7 +17,7 @@ ledger.init = function(startingBalance, db){
       db.close();
     });
   });
-};
+};//TODO: Rename openPositions collection to just positions
 
 ledger.reset = function(db, callback){
   var openPositions = db.collection("openPositions");
