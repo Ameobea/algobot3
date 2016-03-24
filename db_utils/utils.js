@@ -36,7 +36,8 @@ dbUtil.flush = (callback)=>{
       ()=>{db.collection("momentums").drop((err, res)=>{});},
       ()=>{db.collection("prices").drop((err, res)=>{});},
       ()=>{db.collection("smaCrosses").drop((err, res)=>{});},
-      ()=>{db.collection("smaDists").drop((err, res)=>{});}
+      ()=>{db.collection("smaDists").drop((err, res)=>{});},
+      ()=>{db.collection("tradeHistory").drop((err, res)=>{});}
     ], ()=>{
       db.close();
       callback();

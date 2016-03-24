@@ -14,7 +14,8 @@
     "async": "1.5.2",
     "promise": "7.1.1",
     "ejs": "2.4.1",
-    "nodejs-websocket": "1.5.0"
+    "nodejs-websocket": "1.5.0",
+    "bluebird": "3.3.4"
 },
   "repository": {
     "type": "git",

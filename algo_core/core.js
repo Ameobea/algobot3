@@ -89,7 +89,7 @@ core.start = ()=>{
           });
         });
       }).then(res=>{//after all averages + momentums are calculated
-        tradeGen.eachTick(res[0], timestamp, curMomentums[pair], res[1], db);
+        tradeGen.eachTick(res[0], timestamp, curMomentums[pair], res[1], db, false);
       });
     });
   });

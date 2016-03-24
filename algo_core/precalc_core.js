@@ -1,3 +1,4 @@
+"use strict";
 /*
 Precalculated Algorithm Core Module
 
@@ -12,8 +13,14 @@ var redis = require("redis");
 
 var conf = require("../conf/conf");
 var dbUtil = require("../db_utils/utils");
+var tradeGen = require("../trade_generator/generator");
+var Promise = require("bluebird");
 
 var curMomentums = {};
+
+Promise.onPossiblyUnhandledRejection(function(error){
+    throw error;
+});
 
 core.start = ()=>{
   dbUtil.mongoConnect(db=>{
@@ -38,37 +45,55 @@ core.start = ()=>{
 };
 
 core.doBacktest = (pair, dbData, startTime, endTime, db)=>{
-  var prices = dbData.filter(collection=>{
+
+  var pricesCollection = dbData.filter(collection=>{
     return collection.type == "prices";
-  });
+  })[0].data;
 
   var momentumCollection = dbData.filter(collection=>{
-    collection.type == "momentums";
-  });
+    return collection.type == "momentums";
+  })[0].data;
 
   var crossesCollection = dbData.filter(collection=>{
-    collection.type == "smaCrosses";
-  });
+    return collection.type == "smaCrosses";
+  })[0].data;
 
-  prices.data.forEach(priceUpdate=>{
+  core.iterPrices(dbData, pair, db, 0, pricesCollection, momentumCollection, crossesCollection);
+};
+
+core.iterPrices = (dbData, pair, db, index, pricesCollection, momentumCollection, crossesCollection)=>{
+  if(!(index < pricesCollection.length)){
+    console.log("All data processed.");
+    return;
+  }
+
+  console.log(`${index}/${pricesCollection.length}`);//TODO: don't load old trade history in db dumps
+
+  var priceUpdate = pricesCollection[index];
+
+  return new Promise((fulfill, reject)=>{
     var timestamp = priceUpdate.timestamp;
 
     var momentums = momentumCollection.filter(momentum=>{
-      momentum.timestamp == timestamp;
+      return momentum.timestamp == timestamp;
     });
 
     var crosses = crossesCollection.filter(cross=>{
-      cross.timestamp == timestamp;
-    }).map(cross=>{
+      return cross.timestamp == timestamp;
+    });
+
+    crosses = crosses.map(cross=>{
       return {period: cross.period, compPeriod: cross.compPeriod, direction: cross.direction};
     });
 
     core.storeLocalMomentums(pair, momentums);
-
-    tradeGen.eachTick(pair, timestamp, curMomentums[pair], crosses, db);
+    tradeGen.eachTick(pair, timestamp, curMomentums[pair], crosses, db, ()=>{
+      fulfill(); //once done processing latest trade data, send next.
+    });
+  }).then(()=>{
+    core.iterPrices(dbData, pair, db, index + 1, pricesCollection, momentumCollection, crossesCollection);
   });
-};
-
+}
 
 //start times are inclusive, while end times are non-inclusive
 core.loadDatabase = (pair, startTime, endTime, db)=>{
@@ -84,7 +109,6 @@ core.loadDatabase = (pair, startTime, endTime, db)=>{
     });
 
     Promise.all(promises).then(res=>{
-      console.log(res);
       fulfill(res);
     });
   });
@@ -99,7 +123,7 @@ core.storeLocalMomentums = (pair, momentums)=>{
     if(!curMomentums[pair][momentum.averagePeriod.toString()]){
       curMomentums[pair][momentum.averagePeriod.toString()] = {};
     }
-
-    curMomentums[pair][momentum.averagePeriod.toString()][momentum.momentumPeriod]
+    
+    curMomentums[pair][momentum.averagePeriod.toString()][momentum.momentumPeriod] = [momentum.timestamp, momentum.momentum];
   });
 };

@@ -12,6 +12,7 @@ var publicConfig = exports;
 
 // "dev" for development, "prod" for live
 publicConfig.environment = "dev";
+publicConfig.dumpDbOnStart = false;
 
 publicConfig.managerServerIP = "new.ameobea.me";
 publicConfig.managerServerPort = 3002;
@@ -70,6 +71,3 @@ publicConfig.backtestTimestampMultiplier = 0.001;
 //don't talk to a broker for any trades; instead use simulated account.
 publicConfig.simulatedLedger = true;
 publicConfig.startingBalance = 32400;
-
-//ONLY ON IF using precalc backtesting.  TODO Switch this to dynamically change
-publicConfig.usePrecalcCore = true;

@@ -4,11 +4,8 @@ var manager = require("./manager/manager");
 var conf = require("./conf/conf");
 var tickGenerator = require("./tick_generator/tick_generator");
 var backtest = require("./backtest/backtest");
-if(conf.public.usePrecalcCore){
-  var core = require("./algo_core/precalc_core");
-}else{
-  var core = require("./algo_core/core");
-}
+var precalcCore = require("./algo_core/precalc_core");
+var core = require("./algo_core/core");
 var dbUtils = require("./db_utils/utils");
 var ledger = require("./trade_generator/ledger");
 
@@ -20,6 +17,7 @@ dbUtils.init(()=>{
   manager.start(conf.public.managerServerPort);
   tickGenerator.listen();
   core.start();
+  precalcCore.start();
 
   if(conf.public.simulatedLedger){
     dbUtils.mongoConnect(db=>{
@@ -27,7 +25,7 @@ dbUtils.init(()=>{
     });
   }
 
-  if(conf.public.environment == "dev"){
+  if(conf.public.dumpDbOnStart){
     backtest.clearFlags(()=>{});
     dbUtils.flush(()=>{});
   }

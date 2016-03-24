@@ -4,6 +4,8 @@ Basic Momentum Strategy #1
 
 For information about this strategy, see README.md.
 */
+var Promise = require("bluebird");
+
 var mom1 = exports;
 
 mom1.config = {
@@ -38,6 +40,8 @@ mom1.getSignal = function(pair, momentum, callback){
     }else{
       callback(false);
     }
+  }else{
+    callback(false);
   }
 };
 
