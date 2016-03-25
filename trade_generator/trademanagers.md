@@ -46,22 +46,33 @@ The following is an example of a condition function that increases the position 
 ```
 
 ##### bid
-**Format**: `{type: "bid", value: n}` 
+**Usage:**  `var bid = env.bid;`
 
 The current bid of the pair.
 
 ##### ask
-**Format**: `{type: "ask", value: n}` 
+**Usage:**  `var ask = env.ask;`
 
 The current ask price for the pair.
 
 ##### momentum
-**Format**: `{type: momentum, averagePeriod: n, momentumPeriod: n}`
+**Usage:**  
 
-The momentum value of the pair for the specified momentum pair.
+```
+var momentumPromise = env.momentum({averagePeriod: 5000, momentumPeriod: 5000});
+momentumPromise.then(momentum=>{
+  if(momentum > 5){
+    ...
+  }
+});
+```
+
+The momentum value of the pair for the specified momentum pair.  It returns a promise even if the momentum was included in the current priceUpdate.  
+
+If it was not included in the current price update, the necessary database queries will be made and it will be calculated on-demand.
 
 ##### sma
-**Format**: `{type: sma, period: n, value: n}`
+**Format**: `{type: sma, period: n}`
 
 The moving average for the pair of the specified period.  
 
