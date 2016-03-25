@@ -63,7 +63,7 @@ publicConfig.momentumCalcResolution = 64;
 //****If this is true, backtest ticks will be ignored.  If false, live ticks will be ignored.*****
 publicConfig.live = false;
 
-publicConfig.mongoIndexRebuildPeriod = 60 * 1000;
+publicConfig.mongoIndexRebuildPeriod = 60 * 1000; //TODO: Get these to actually work
 
 //timestamps from backtests are multiplied by this before being sent to tick_generator
 publicConfig.backtestTimestampMultiplier = 0.001;
@@ -71,3 +71,6 @@ publicConfig.backtestTimestampMultiplier = 0.001;
 //don't talk to a broker for any trades; instead use simulated account.
 publicConfig.simulatedLedger = true;
 publicConfig.startingBalance = 32400;
+
+//The name of the file in trade_generator/brokers that will be used as broker API
+publicConfig.broker = "simulated";
