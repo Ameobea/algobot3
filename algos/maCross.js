@@ -13,15 +13,15 @@ var maCross = exports;
 var crossStatuses = {};
 //TODO: Change so that instead of watching for actual crosses, watch the distance between two smas.
 
-maCross.initCrossStatuses = (pair, period, compPeriod, status)=>{
-  if(!crossStatuses[pair]){
-    crossStatuses[pair] = {};
+maCross.updateCrossStatuses = (statuses, pair, period, compPeriod, status)=>{
+  if(!statuses[pair]){
+    statuses[pair] = {};
   }
-  if(!crossStatuses[pair][period]){
-    crossStatuses[pair][period] = {};
+  if(!statuses[pair][period]){
+    statuses[pair][period] = {};
   }
-  if(typeof crossStatuses[pair][period][compPeriod] == 'undefined'){
-    crossStatuses[pair][period][compPeriod] = status;
+  if(typeof statuses[pair][period][compPeriod] == 'undefined'){
+    statuses[pair][period][compPeriod] = status;
   }
 }
 
@@ -32,7 +32,7 @@ maCross.calc = (pair, lastAverages, newAveragePeriod, newAverage, timestamp, db,
     if(lastAverages[pair] && lastAverages[pair][newAveragePeriod.toString()] && monitoredPeriod >= newAveragePeriod){
       var curStatus = (newAverage > lastAverages[pair][monitoredPeriod.toString()][1]);
 
-      maCross.initCrossStatuses(pair, newAveragePeriod.toString(), monitoredPeriod.toString(), curStatus);
+      maCross.updateCrossStatuses(crossStatuses, pair, newAveragePeriod.toString(), monitoredPeriod.toString(), curStatus);
 
       if(curStatus != crossStatuses[pair][newAveragePeriod.toString()][monitoredPeriod.toString()]){
         crossStatuses[pair][newAveragePeriod.toString()][monitoredPeriod.toString()] = curStatus;
@@ -43,7 +43,7 @@ maCross.calc = (pair, lastAverages, newAveragePeriod, newAverage, timestamp, db,
     }
   });
 
-  callback(changes);
+  callback(changes, crossStatuses);
 }
 
 maCross.storeCross = (pair, timestamp, period, compPeriod, direction, db)=>{

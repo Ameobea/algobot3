@@ -59,7 +59,7 @@ core.start = ()=>{
       var calced = [];
       new Promise((fulfill, reject)=>{
         core.calcAverages(priceUpdate, toAverage, db, (average, averagePeriod)=>{
-          maCross.calc(pair, curAverages, averagePeriod, average, timestamp, db, (newCrosses)=>{
+          maCross.calc(pair, curAverages, averagePeriod, average, timestamp, db, (newCrosses, crossStatuses)=>{
             core.storeLocalAverages(pair, averagePeriod, timestamp, average);
 
             calced.push({period: averagePeriod, average: average});
@@ -84,12 +84,14 @@ core.start = ()=>{
             core.calcMomentums(priceUpdate, parseInt(averagePeriod), toMomentum, db, (momentum, momentumPeriod)=>{
               core.storeLocalMomentums(pair, averagePeriod, momentumPeriod, timestamp, momentum);
             }, ()=>{
-              fulfill([pair, newCrosses]);
+              fulfill([pair, newCrosses, crossStatuses]);
             });
           });
         });
       }).then(res=>{//after all averages + momentums are calculated
-        tradeGen.eachTick(res[0], timestamp, curMomentums[pair], res[1], db, false);
+        var data = {pair: res[0], timestamp: timestamp, curMomentums: curMomentums[pair],
+          newCrosses: res[1], curCrosses: res[2]};
+        tradeGen.eachTick(data, db, false);
       });
     });
   });

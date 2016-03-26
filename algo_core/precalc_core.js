@@ -14,6 +14,8 @@ var redis = require("redis");
 var conf = require("../conf/conf");
 var dbUtil = require("../db_utils/utils");
 var tradeGen = require("../trade_generator/generator");
+var maCross = require("../algos/maCross");
+
 var Promise = require("bluebird");
 
 var curMomentums = {};
@@ -61,7 +63,10 @@ core.doBacktest = (pair, dbData, startTime, endTime, db)=>{
   core.iterPrices(dbData, pair, db, 0, pricesCollection, momentumCollection, crossesCollection);
 };
 
-core.iterPrices = (dbData, pair, db, index, pricesCollection, momentumCollection, crossesCollection)=>{
+//this simulates a tick being sent and processed
+core.iterPrices = (dbData, pair, db, index, pricesCollection, momentumCollection, crossesCollection, state)=>{
+  core.initState(state);
+
   if(!(index < pricesCollection.length)){
     console.log("All data processed.");
     return;
@@ -79,19 +84,26 @@ core.iterPrices = (dbData, pair, db, index, pricesCollection, momentumCollection
       return momentum.timestamp == timestamp;
     });
 
-    var crosses = crossesCollection.filter(cross=>{
+    var newCrosses = crossesCollection.filter(cross=>{
       return cross.timestamp == timestamp;
     });
 
-    crosses = crosses.map(cross=>{
+    core.updateState(state);
+
+    newCrosses = newCrosses.map(cross=>{
       return {period: cross.period, compPeriod: cross.compPeriod, direction: cross.direction};
     });
 
     core.storeLocalMomentums(pair, momentums);
-    tradeGen.eachTick(pair, timestamp, curMomentums[pair], crosses, db, ()=>{
+
+    var data = {pair: pair, timestamp: timestamp, curMomentums: curMomentums[pair],
+    newCrosses: newCrosses, curCrosses: {/*TODO*/}};
+    
+    tradeGen.eachTick(data, db, ()=>{
       fulfill(); //once done processing latest trade data, send next.
     });
   }).then(()=>{
+    //simulate the next tick being sent
     core.iterPrices(dbData, pair, db, index + 1, pricesCollection, momentumCollection, crossesCollection);
   });
 }
@@ -128,3 +140,16 @@ core.storeLocalMomentums = (pair, momentums)=>{
     curMomentums[pair][momentum.averagePeriod.toString()][momentum.momentumPeriod] = [momentum.timestamp, momentum.momentum];
   });
 };
+
+core.updateState = (state, pair)=>{
+  //Cross statuses
+  if(!state.crossStatuses){
+    state.crossStatuses = {};
+  }
+
+  if(!state.crossStatuses[pair]){
+    state.crossStatuses[pair] = {};
+  }
+
+  //TODO: maCross.updateCrossStatuses(state.crossStatuses, pair, )
+}
