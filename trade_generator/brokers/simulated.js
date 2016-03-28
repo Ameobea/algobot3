@@ -6,7 +6,7 @@ of those trades recorded internally.
 */
 var broker = exports;
 
-broker.createMarketOrder = (pair, )=>{
+broker.createMarketOrder = (pair, direction)=>{
   return new Promise((fulfill, reject)=>{
     //TODO: DO
     //TODO: Account for broker slippage

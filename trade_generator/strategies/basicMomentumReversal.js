@@ -25,7 +25,7 @@ strat.state = {
   lastDirection: undefined //direction the momentum is moving, up or down
 };
 
-start.eachUpdate = (data, db)=>{
+strat.eachUpdate = (data, db)=>{
   var env = environment.getEnv(data);
 
   var curMomentum = env.curMomentum({ //this is just a number, no timestamp array etc.
@@ -92,7 +92,5 @@ start.eachUpdate = (data, db)=>{
         });
       });
     });
-
-    
   }
 }

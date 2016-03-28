@@ -67,9 +67,7 @@ core.doBacktest = (pair, dbData, startTime, endTime, db)=>{
 };
 
 //this simulates a tick being sent and processed
-core.iterPrices = (dbData, pair, db, index, pricesCollection, averagesCollection, momentumCollection, crossesCollection, state)=>{
-  core.initState(state);
-
+core.iterPrices = (dbData, pair, db, index, pricesCollection, averagesCollection, momentumCollection, crossesCollection)=>{
   if(index >= pricesCollection.length){
     console.log("All data processed.");
     return;
@@ -93,8 +91,6 @@ core.iterPrices = (dbData, pair, db, index, pricesCollection, averagesCollection
     var newCrosses = crossesCollection.filter(cross=>{
       return cross.timestamp == timestamp;
     });
-
-    core.updateState(state);
 
     newCrosses = newCrosses.map(cross=>{
       return {period: cross.period, compPeriod: cross.compPeriod, direction: cross.direction};
@@ -171,17 +167,4 @@ core.storeLocalCrosses = (pair, newCrosses)=>{
 
     curCrosses[pair][cross.period.toString()][cross.compPeriod.toString()] = cross.direction;
   });
-};
-
-core.updateState = (state, pair)=>{
-  //Cross statuses
-  if(!state.crossStatuses){
-    state.crossStatuses = {};
-  }
-
-  if(!state.crossStatuses[pair]){
-    state.crossStatuses[pair] = {};
-  }
-
-  //TODO: maCross.updateCrossStatuses(state.crossStatuses, pair, )
 };

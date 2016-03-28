@@ -11,13 +11,19 @@ conditionEnvironment.getActions = (position, broker)=>{
   var actions = {};
 
   actions.resizePosition = multiplier=>{
-    var diff = (position.size * multiplier) - position.size;
-
-    ledger.resizePosition(position.id, diff);
+    return new Promise((fulfill, reject)=>{
+      ledger.resizePosition(position, multiplier, db).then(()=>{
+        fulfill();
+      });
+    });
   };
 
-  actions.closePosition = ()=>{
-    broker.closePosition()
+  actions.closePosition = closePrice=>{
+    return new Promise((fulfill, reject)=>{
+      ledger.closePosition(position, closePrice, db, ()=>{
+        fulfill();
+      });
+    });
   }
 
   actions.addCondition = condition=>{
@@ -58,7 +64,7 @@ conditionEnvironment.getEnv = (data)=>{
 
   env.curCrossStatus = req=>{
     if(data.crosses[req.period.toString()] && data.crosses[req.period.toString()][req.momentumPeriod.toString()]){
-      return data.crosses[req.period.toString()] && data.crosses[req.period.toString()][req.momentumPeriod.toString()];
+      return data.crosses[req.period.toString()][req.momentumPeriod.toString()];
     }else{
       return false;
     }

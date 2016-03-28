@@ -7,8 +7,8 @@ as well as managing the balance and utilisation of margin.
 */
 var ledger = exports;
 
-var conf = require("../../conf/conf");
-var broker = require("../brokers/" + conf.public.broker);
+var conf = require("../conf/conf");
+var broker = require("./brokers/" + conf.public.broker);
 
 var uuid = require("uuid64");
 
@@ -56,7 +56,7 @@ ledger.updateBalance = (diff, db, callback)=>{
 //if pair == ALL returns all positions
 //descrim is an object passed to mongo which serve as a filter
 ledger.getPositions = (pair, descrim, db)=>{
-  return new Promise(fulfill, reject){
+  return new Promise((fulfill, reject)=>{
     var positions = db.collection("positions");
 
     if(pair != "ALL"){
@@ -68,7 +68,7 @@ ledger.getPositions = (pair, descrim, db)=>{
         fulfill(res);
       });
     }
-  }
+  });
 };
 
 //size in dollars atm
@@ -77,41 +77,32 @@ ledger.openPosition = (pair, price, size, direction, state, conditions, db, call
   ledger.updateBalance(-size, db, ()=>{
     var positions = db.collection("positions");
 
-    var doc = {id: uuid(), pair: pair,  conditions: conditions, openPrice: price,
-      value: size, direction: direction, units: size/price};
-    positions.insertOne(doc, (err, res)=>{
-      callback(res.insertedId);
+    broker.createLimitOrder(pair, size, direction).then(()=>{
+      var doc = {id: uuid(), pair: pair,  conditions: conditions, openPrice: price,
+        value: size, direction: direction, units: size/price};
+      positions.insertOne(doc, (err, res)=>{
+        callback(res.insertedId);
+      });
     });
   });
 };
 
-ledger.resizePosition = (id, multiplier, db, callback)=>{
-  var positions = db.collection("positions");
-
-  positions.find({id: id}).toArray((err, positionArray)=>{
-    if(positionArray.length > 0){
-      var position = positionArray[0];
-
-      broker.resizePosition(pair, multiplier).then(()=>{
-        //TODO: Resize the position in the database
-      })
-    }
+ledger.resizePosition = (postion, multiplier, db)=>{
+  return new Promise((fulfill, reject)=>{
+    broker.resizePosition(position.pair, multiplier).then(()=>{
+      positions.updateOne({id: id}, {size: position.size * multiplier}).then(()=>{
+        position.size = position.size * multiplier;
+        fulfill(position);
+      });
+    });
   });
 }
 
-ledger.closePosition = (id, closePrice, db, callback)=>{
-  var positions = db.collection("positions");
-
-  positions.find({id: id}).toArray((err, positionArray)=>{
-    if(positionArray.length > 0){
-      var position = positionArray[0];
-
-      broker.closePosition(position.pair, position.size).then(()=>{
-        ledger.updateBalance(position.units * closePrice, db, ()=>{
-          var doc = {id: id};
-          positions.removeOne(doc, callback);
-        });
-      });
-    }
+ledger.closePosition = (position, closePrice, db, callback)=>{
+  broker.closePosition(position.pair, position.size).then(()=>{
+    ledger.updateBalance(position.units * closePrice, db, ()=>{
+      var doc = {id: id};
+      positions.removeOne(doc, callback);
+    });
   });
 };

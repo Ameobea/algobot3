@@ -10,6 +10,7 @@ var tradeGen = exports;
 
 var manager = require("./tradeManager/tradeManager");
 var ledger = require("./ledger");
+var strats = require("./strategies/index").strats;
 
 var Promise = require("bluebird");
 Promise.onPossiblyUnhandledRejection(function(error){
@@ -24,6 +25,10 @@ var positionsCache = [];
 tradeGen.eachTick = (data, db)=>{
   return new Promise((fulfill, reject)=>{
     var pair = data.pair;
+
+    strats.forEach(strat=>{
+      strat.eachUpdate(data, db);
+    });
 
     if(positionsCache == []){
       ledger.getPositions(pair, {}, db).then(positions => positionsCache = positions);
