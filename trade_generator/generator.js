@@ -36,9 +36,7 @@ tradeGen.eachTick = (data, db)=>{
 
     Promise.all(toManage).then(newPositions=>{
       newPositions.forEach(position=>{
-        if(position){
-          //TODO: Replace old position with new one in database and database cache
-        }
+        //TODO: Replace old position with new one in database and database cache
       });
     }).then(() => fulfill());// fulfill when done evaluating all conditions of all positions
   });

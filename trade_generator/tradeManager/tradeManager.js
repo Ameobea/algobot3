@@ -23,29 +23,36 @@ manager.manage = (position, data, evaluated)=>{
       evaluated = [];
     }
 
-    var env = condEnv.getEnv(position, data);
+    var env = condEnv.getEnv(data);
     var actions = condEnv.getActions(position);
 
-    manager.iterConditions(position, data, env, actions, [], (condition)=>{
+    manager.iterConditions(position, data, env, actions, [], condition=>{
       fulfill(condition);
     });
   });
 };
 
+/*for each condition, evaluate and then 
+if it returns a new version of the position
+use that to evaulate the other positions.*/
 manager.iterConditions = (position, data, env, actions, evaled, callback)=>{
   var toEval = position.conditions.filter(condition=>{
-    return !(condition in evaled);
+    return !(condition.id in evaled);
   }); //don't evaluate already evaluated conditions
 
-  evaled.push(toEval[0]); //add current condition to already evaluated list
+  evaled.push(toEval[0].id); //add current condition to already evaluated list
 
-  toEval[0](env, position.status, actions).then(newPosition=>{
-    if(newPosition){
-      manager.iterConditions(newPosition, data, env, actions, evaled, callback);
-    }else{
-      manager.iterConditions(position, data, env, actions, evaled, callback);
-    }
-  });
+  if(toEval.length > 0){
+    toEval[0].func(env, position.status, actions).then(newPosition=>{
+      if(newPosition){//if the condition returned a new version of the position
+        manager.iterConditions(newPosition, data, env, actions, evaled, callback);
+      }else{
+        manager.iterConditions(position, data, env, actions, evaled, callback);
+      }
+    });
+  }else{
+    callback(position); //when all conditions are evaluted, return the updated position
+  } 
 };
 
 manager.verifyPositions = positionCache=>{

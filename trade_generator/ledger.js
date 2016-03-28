@@ -7,6 +7,11 @@ as well as managing the balance and utilisation of margin.
 */
 var ledger = exports;
 
+var conf = require("../../conf/conf");
+var broker = require("../brokers/" + conf.public.broker);
+
+var uuid = require("uuid64");
+
 var Promise = require("bluebird");
 Promise.onPossiblyUnhandledRejection(function(error){
     throw error;
@@ -68,26 +73,44 @@ ledger.getPositions = (pair, descrim, db)=>{
 
 //size in dollars atm
 //calls back with the ID of inserted position
-ledger.openPosition = (pair, price, size, direction, db, callback)=>{
+ledger.openPosition = (pair, price, size, direction, state, conditions, db, callback)=>{
   ledger.updateBalance(-size, db, ()=>{
     var positions = db.collection("positions");
 
-    var doc = {pair: pair, openPrice: price, value: size, direction: direction, units: size/price};
+    var doc = {id: uuid(), pair: pair,  conditions: conditions, openPrice: price,
+      value: size, direction: direction, units: size/price};
     positions.insertOne(doc, (err, res)=>{
       callback(res.insertedId);
     });
   });
 };
 
+ledger.resizePosition = (id, multiplier, db, callback)=>{
+  var positions = db.collection("positions");
+
+  positions.find({id: id}).toArray((err, positionArray)=>{
+    if(positionArray.length > 0){
+      var position = positionArray[0];
+
+      broker.resizePosition(pair, multiplier).then(()=>{
+        //TODO: Resize the position in the database
+      })
+    }
+  });
+}
+
 ledger.closePosition = (id, closePrice, db, callback)=>{
   var positions = db.collection("positions");
 
-  positions.find({_id: id}).toArray((err, positionArray)=>{
+  positions.find({id: id}).toArray((err, positionArray)=>{
     if(positionArray.length > 0){
       var position = positionArray[0];
-      ledger.updateBalance(position.units * closePrice, db, ()=>{
-        var doc = {_id: id};
-        positions.removeOne(doc, callback);
+
+      broker.closePosition(position.pair, position.size).then(()=>{
+        ledger.updateBalance(position.units * closePrice, db, ()=>{
+          var doc = {id: id};
+          positions.removeOne(doc, callback);
+        });
       });
     }
   });

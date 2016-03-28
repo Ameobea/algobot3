@@ -18,7 +18,11 @@ In addition, three other pieces of data are included: State, Conditions, and Act
 
 The `manage` collection has a subcollection called `conditions`.  These are a set of conitions that must be met for an action to be taken.  
 
-They are passed in as Promises.  Each of these conditions are evaluted on each priceUpdate.  Each condition must also fulfill with either `false` or an updated version of `position`.  This can be useful if things such as position state are altered or new condition promises are added.  Perhaps change this to automatically detect changes.  
+On a database level, conditions are stored in the following form:
+
+`{id: «unique position id», func: (env, state, actions)=>{return new Promise((fulfill, reject)=> ... }}`
+
+The `func` property of conditions are passed in as Promises.  Each of these conditions are evaluted on each priceUpdate.  Each condition must also fulfill with either `false` or an updated version of `position`.  This can be useful if things such as position state are altered or new condition promises are added.  Perhaps change this to automatically detect changes.  
 
 #### Creating conditions
 
@@ -41,11 +45,13 @@ The following is an example of a condition function that increases the position 
 ```
 
 ### Environment
-
 Conditions have access to a variety of variables that provide information about the curren position or market data calculated by the bot.  They can be included in condition functions using the `env` variable that is injected into all evaluated functions.  
 
-#### Pair
+The `conditionEnvironment` module processes raw data from the bot into an environment object that can be used with condition functions.  The `data` object used with this module should have the following form:
 
+`{pair: pair, timestamp: timestamp, momentums: curMomentums[pair], averages: curAverages[pair], crosses: curCrosses}`
+
+#### Pair
 **Usage:**  `env.pair`
 
 #### Current Momentum

@@ -7,14 +7,31 @@ of those trades recorded internally.
 var broker = exports;
 
 broker.createMarketOrder = (pair, )=>{
-  //TODO: DO
-  //TODO: Account for broker slippage
+  return new Promise((fulfill, reject)=>{
+    //TODO: DO
+    //TODO: Account for broker slippage
+    fulfill();
+  });
+  
 }
 
 broker.createLimitOrder = (pair, size, direction)=>{
-  //TODO: DO
+  return new Promise((fulfill, reject)=>{
+    //TODO: DO
+    fulfill();
+  });
 }
 
-broker.resizePosition = (pair, amount)=>{
-  //TODO: DO
+broker.resizePosition = (pair, multiplier)=>{
+  return new Promise((fulfill, reject)=>{
+    //TODO: DO
+    fulfill();
+  });
+}
+
+broker.closePosition = (pair, size)=>{
+  return new Promise((fulfill, reject)=>{
+    //TODO: DO
+    fulfill();
+  });
 }

@@ -15,7 +15,8 @@
     "promise": "7.1.1",
     "ejs": "2.4.1",
     "nodejs-websocket": "1.5.0",
-    "bluebird": "3.3.4"
+    "bluebird": "3.3.4",
+    "uuid64": "0.0.1"
 },
   "repository": {
     "type": "git",

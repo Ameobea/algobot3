@@ -13,8 +13,12 @@ conditionEnvironment.getActions = (position, broker)=>{
   actions.resizePosition = multiplier=>{
     var diff = (position.size * multiplier) - position.size;
 
-    broker.resizePosition(position.pair, diff);
+    ledger.resizePosition(position.id, diff);
   };
+
+  actions.closePosition = ()=>{
+    broker.closePosition()
+  }
 
   actions.addCondition = condition=>{
     position.conditions.push(condition);
@@ -30,7 +34,7 @@ conditionEnvironment.getActions = (position, broker)=>{
 };
 
 // data is the collection of information sent/maintained by the bot on each price update
-conditionEnvironment.getEnv = (position, data)=>{
+conditionEnvironment.getEnv = (data)=>{
   var env = {};
 
   env.timestamp = data.timestamp;
@@ -53,8 +57,8 @@ conditionEnvironment.getEnv = (position, data)=>{
   };
 
   env.curCrossStatus = req=>{
-    if(data.crosses[req.period.toString()] && data.crosses[req.period.toString()][req.compPeriod.toString()]){
-      return data.crosses[req.period.toString()] && data.crosses[req.period.toString()][req.compPeriod.toString()];
+    if(data.crosses[req.period.toString()] && data.crosses[req.period.toString()][req.momentumPeriod.toString()]){
+      return data.crosses[req.period.toString()] && data.crosses[req.period.toString()][req.momentumPeriod.toString()];
     }else{
       return false;
     }
