@@ -11,21 +11,30 @@ conditionEnvironment.getActions = (position, broker)=>{
   var actions = {};
 
   actions.resizePosition = multiplier=>{
-    var diff = (position.size * amount) - position.size;
+    var diff = (position.size * multiplier) - position.size;
 
-    broker.resizePosition(pair, diff);
-  }
+    broker.resizePosition(position.pair, diff);
+  };
+
+  actions.addCondition = condition=>{
+    position.conditions.push(condition);
+  };
+
+  actions.removeCondition = id=>{
+    position.conditions = position.conditions.filter(id=>{
+      return id != position.id;
+    });
+  };
 
   return actions;
 };
 
 // data is the collection of information sent/maintained by the bot on each price update
-conditionEnvironment.getEnvironment = (position, data)=>{
+conditionEnvironment.getEnv = (position, data)=>{
   var env = {};
 
-  env.bid = data.bid;
-  env.ask = data.ask;
   env.timestamp = data.timestamp;
+  env.pair = data.pair;
 
   env.curMomentum = req=>{
     if(data.momentums[req.averagePeriod.toString()][req.momentumPeriod.toString()]){
@@ -33,23 +42,39 @@ conditionEnvironment.getEnvironment = (position, data)=>{
     }else{
       return false;
     }
-  }
+  };
 
   env.curAverage = req=>{
-    if(data.smas[req.period.toString()]){
-      return data.smas[req.period.toString()][1];
+    if(data.averages[req.period.toString()]){
+      return data.averages[req.period.toString()][1];
     }else{
       return false;
     }
-  }
+  };
 
-  env.fetch.tick = (pair, timestamp, db)=>{
+  env.curCrossStatus = req=>{
+    if(data.crosses[req.period.toString()] && data.crosses[req.period.toString()][req.compPeriod.toString()]){
+      return data.crosses[req.period.toString()] && data.crosses[req.period.toString()][req.compPeriod.toString()];
+    }else{
+      return false;
+    }
+  };
+
+  env.fetch.tick = (req, db)=>{
+    var pair, timestamp;
+
+    if(!req.cur){
+      pair = req.pair;
+      timestamp = req.timestamp;
+    }else{
+      pair = env.pair;
+      timestamp = env.timestamp;
+    }
+
     return new Promise((fulfill, reject)=>{
       db.collection("ticks").find({pair: pair, timestamp: timestamp}).toArray((err, ticks)=>{
         fulfill(ticks[0]);
       });
-    }
-  }
-
-
+    });
+  };
 };

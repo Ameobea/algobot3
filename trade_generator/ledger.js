@@ -5,8 +5,12 @@ Ledger
 This module is responsible for keeping track of open positions for the bot
 as well as managing the balance and utilisation of margin.  
 */
-//TODO: Split up into multiple ledger modules for use with broker APIs.
 var ledger = exports;
+
+var Promise = require("bluebird");
+Promise.onPossiblyUnhandledRejection(function(error){
+    throw error;
+});
 
 ledger.init = (startingBalance, db)=>{
   ledger.reset(db, ()=>{
@@ -17,12 +21,12 @@ ledger.init = (startingBalance, db)=>{
       db.close();
     });
   });
-};//TODO: Rename openPositions collection to just positions
+};
 
 ledger.reset = (db, callback)=>{
-  var openPositions = db.collection("openPositions");
+  var positions = db.collection("positions");
 
-  openPositions.drop((err, res)=>{
+  positions.drop((err, res)=>{
     db.collection("account").drop((err, res)=>{
       db.collection("tradeHistory").drop(callback);
     });
@@ -46,17 +50,19 @@ ledger.updateBalance = (diff, db, callback)=>{
 
 //if pair == ALL returns all positions
 //descrim is an object passed to mongo which serve as a filter
-ledger.getOpenPositions = (pair, descrim, db, callback)=>{
-  var openPositions = db.collection("openPositions");
+ledger.getPositions = (pair, descrim, db)=>{
+  return new Promise(fulfill, reject){
+    var positions = db.collection("positions");
 
-  if(pair != "ALL"){
-    openPositions.find({}).toArray((err, res)=>{
-      callback(res);
-    });
-  }else{
-    openPositions.find({}).toArray((err, res)=>{
-      callback(res);
-    });
+    if(pair != "ALL"){
+      positions.find({}).toArray((err, res)=>{
+        fulfill(res);
+      });
+    }else{
+      positions.find({}).toArray((err, res)=>{
+        fulfill(res);
+      });
+    }
   }
 };
 
@@ -64,26 +70,24 @@ ledger.getOpenPositions = (pair, descrim, db, callback)=>{
 //calls back with the ID of inserted position
 ledger.openPosition = (pair, price, size, direction, db, callback)=>{
   ledger.updateBalance(-size, db, ()=>{
-    var openPositions = db.collection("openPositions");
+    var positions = db.collection("positions");
 
     var doc = {pair: pair, openPrice: price, value: size, direction: direction, units: size/price};
-    openPositions.insertOne(doc, (err, res)=>{
+    positions.insertOne(doc, (err, res)=>{
       callback(res.insertedId);
     });
   });
 };
 
-ledger.setOpenPositions = 
-
 ledger.closePosition = (id, closePrice, db, callback)=>{
-  var openPositions = db.collection("openPositions");
+  var positions = db.collection("positions");
 
-  openPositions.find({_id: id}).toArray((err, positionArray)=>{
+  positions.find({_id: id}).toArray((err, positionArray)=>{
     if(positionArray.length > 0){
       var position = positionArray[0];
       ledger.updateBalance(position.units * closePrice, db, ()=>{
         var doc = {_id: id};
-        openPositions.removeOne(doc, callback);
+        positions.removeOne(doc, callback);
       });
     }
   });

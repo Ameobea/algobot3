@@ -84,13 +84,13 @@ core.start = ()=>{
             core.calcMomentums(priceUpdate, parseInt(averagePeriod), toMomentum, db, (momentum, momentumPeriod)=>{
               core.storeLocalMomentums(pair, averagePeriod, momentumPeriod, timestamp, momentum);
             }, ()=>{
-              fulfill([pair, newCrosses, crossStatuses]);
+              fulfill([pair, crossStatuses]);
             });
           });
         });
       }).then(res=>{//after all averages + momentums are calculated
-        var data = {pair: res[0], timestamp: timestamp, curMomentums: curMomentums[pair],
-          newCrosses: res[1], curCrosses: res[2]};
+        var data = {pair: res[0], timestamp: timestamp, momentums: curMomentums[pair],
+          averages: curAverages[pair], crosses: res[1]};
         tradeGen.eachTick(data, db, false);
       });
     });

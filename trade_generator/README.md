@@ -20,7 +20,7 @@ Keeps track of open trades and balance for the trading account.  Either uses bro
 ### Trade Manager
 This is the system responsible for managing open positions and performing actions such as closing or enlarging them.  
 
-For each of the open positions in the mongodb collection `openPositions`, there is a sub-document called `manager` that contains information on how to manage that position.  See trademanagers.md for more info about this.
+For each of the open positions in the mongodb collection `positions`, there is a sub-document called `manager` that contains information on how to manage that position.  See trademanagers.md for more info about this.
 
 ## Trade Logger
 Records data about executed trades and the conditions that led to their executions.  Can also log things like total profit so far, etc.

@@ -2,7 +2,7 @@
 
 The trade manager module is the part of the bot that deals with currently open positions or requests to open positions.  Since you're usually going to want to do something with an open position at some point, trade manager exists to do that for you.
 
-For each member of the openPositions collection, a subdocument called `manage` exists which contains a list of conditions that the trade manager uses to act upon that position.  
+For each member of the `positions` collection, a subdocument called `manage` exists which contains a list of conditions that the trade manager uses to act upon that position.  
 
 ## Manage Document Reference
 
@@ -18,7 +18,7 @@ In addition, three other pieces of data are included: State, Conditions, and Act
 
 The `manage` collection has a subcollection called `conditions`.  These are a set of conitions that must be met for an action to be taken.  
 
-They are passed in as functions.  Each of these conditions are evaluted on each priceUpdate.  
+They are passed in as Promises.  Each of these conditions are evaluted on each priceUpdate.  Each condition must also fulfill with either `false` or an updated version of `position`.  This can be useful if things such as position state are altered or new condition promises are added.  Perhaps change this to automatically detect changes.  
 
 #### Creating conditions
 
@@ -28,9 +28,14 @@ The following is an example of a condition function that increases the position 
 
 ```
 (env, state, actions)=>{
-  if(env.bid <= state.buyThreshold){
-    state.buyThreshold *= .99;
-    actions.resizePosition(1.25);
+  return new Promse(fulfill, reject){
+    if(env.bid <= state.buyThreshold){
+      state.buyThreshold *= .99;
+      actions.resizePosition(1.25);
+      fulfill(position); //position has been altered so fulfill with position
+    }else{
+      fulfill(false); //No changes made to position so just fulfill false
+    }
   }
 }
 ```
@@ -39,15 +44,9 @@ The following is an example of a condition function that increases the position 
 
 Conditions have access to a variety of variables that provide information about the curren position or market data calculated by the bot.  They can be included in condition functions using the `env` variable that is injected into all evaluated functions.  
 
-#### bid
-**Usage:**  `var bid = env.bid;`
+#### Pair
 
-The current bid of the pair.
-
-#### ask
-**Usage:**  `var ask = env.ask;`
-
-The current ask price for the pair.
+**Usage:**  `env.pair`
 
 #### Current Momentum
 **Usage:**  `var momentum = env.curMomentum({averagePeriod: 5000, momentumPeriod: 3000});`
@@ -58,6 +57,16 @@ The momentum value of the pair for the specified momentum pair.
 **Usage:**  `var sma = env.curSma({period: 5000});`
 
 The moving average for the pair of the specified period.  
+
+#### Current SMA Cross Status
+**Usage:**  `var crossStatus = env.curCrossStatus({period: 30, compPeriod, 300});`
+
+Returns true if the average with a period of `compPeriod` is greater than the average with a period of `period`.
+
+#### Tick
+**Usage:** Current tick:  `env.fetch.tick({cur: true}).then(tick=>{...});`
+
+Arbitrary tick:  `env.fetch.tick({pair: pair, timestamp: timestamp}).then(tick=>{...});`
 
 ### Actions
 
