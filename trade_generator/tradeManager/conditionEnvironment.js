@@ -5,6 +5,11 @@ Condition Function Environment Functions
 This file contains helper functons that supply information about positions
 and market conditions to condition functions for open positions.  
 */
+var Promise = require("bluebird");
+Promise.onPossiblyUnhandledRejection(function(error){
+    throw error;
+});
+
 var conditionEnvironment = exports;
 
 conditionEnvironment.getActions = (position, broker)=>{
@@ -13,7 +18,9 @@ conditionEnvironment.getActions = (position, broker)=>{
   actions.resizePosition = multiplier=>{
     return new Promise((fulfill, reject)=>{
       ledger.resizePosition(position, multiplier, db).then(()=>{
-        fulfill();
+        fulfill(newPosition=>{
+          position = newPosition;
+        });
       });
     });
   };
@@ -41,36 +48,33 @@ conditionEnvironment.getActions = (position, broker)=>{
 
 // data is the collection of information sent/maintained by the bot on each price update
 conditionEnvironment.getEnv = (data)=>{
-  var env = {};
-
-  env.timestamp = data.timestamp;
-  env.pair = data.pair;
+  var env = data;
 
   env.curMomentum = req=>{
-    if(data.momentums[req.averagePeriod.toString()][req.momentumPeriod.toString()]){
-      return data.momentums[req.averagePeriod.toString()][req.momentumPeriod.toString()][1];
+    if(env.momentums[req.averagePeriod.toString()] && env.momentums[req.momentumPeriod.toString()]){
+      return env.momentums[req.averagePeriod.toString()][req.momentumPeriod.toString()][1];
     }else{
       return false;
     }
   };
 
   env.curAverage = req=>{
-    if(data.averages[req.period.toString()]){
-      return data.averages[req.period.toString()][1];
+    if(env.averages[req.period.toString()]){
+      return env.averages[req.period.toString()][1];
     }else{
       return false;
     }
   };
 
   env.curCrossStatus = req=>{
-    if(data.crosses[req.period.toString()] && data.crosses[req.period.toString()][req.momentumPeriod.toString()]){
-      return data.crosses[req.period.toString()][req.momentumPeriod.toString()];
+    if(env.crosses[req.period.toString()] && env.crosses[req.period.toString()][req.momentumPeriod.toString()]){
+      return env.crosses[req.period.toString()][req.momentumPeriod.toString()];
     }else{
       return false;
     }
   };
 
-  env.fetch.tick = (req, db)=>{
+  env.fetchTick = (req, db)=>{
     var pair, timestamp;
 
     if(!req.cur){
@@ -87,4 +91,6 @@ conditionEnvironment.getEnv = (data)=>{
       });
     });
   };
+
+  return env;
 };

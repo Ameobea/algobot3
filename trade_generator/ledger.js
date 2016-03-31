@@ -73,7 +73,7 @@ ledger.getPositions = (pair, descrim, db)=>{
 
 //size in dollars atm
 //calls back with the ID of inserted position
-ledger.openPosition = (pair, price, size, direction, state, conditions, db, callback)=>{
+ledger.openPosition = (pair, price, size, direction, conditions, db, callback)=>{
   ledger.updateBalance(-size, db, ()=>{
     var positions = db.collection("positions");
 

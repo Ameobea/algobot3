@@ -25,24 +25,37 @@ var positionsCache = [];
 tradeGen.eachTick = (data, db)=>{
   return new Promise((fulfill, reject)=>{
     var pair = data.pair;
+    var toManage = [];
 
     strats.forEach(strat=>{
-      strat.eachUpdate(data, db);
+      toManage.push(strat.eachUpdate(data, db));
     });
 
-    if(positionsCache == []){
-      ledger.getPositions(pair, {}, db).then(positions => positionsCache = positions);
-    }
+    Promise.all(toManage).then(()=>{
+      console.log("Finished evaluating all strategies.");
 
-    var toManage = [];
-    positionsCache.forEach(position=>{
-      toManage.push(manager.manage(position, data));
-    });
+      //if(positionsCache == []){
+        ledger.getPositions(pair, {}, db).then(positions => positionsCache = positions);
+      //}
 
-    Promise.all(toManage).then(newPositions=>{
-      newPositions.forEach(position=>{
-        //TODO: Replace old position with new one in database and database cache
+      toManage = [];
+      positionsCache.forEach(position=>{
+        toManage.push(manager.manage(position, data, []));
       });
-    }).then(() => fulfill());// fulfill when done evaluating all conditions of all positions
+
+      Promise.all(toManage).then(newPositions=>{
+        console.log(newPositions);
+        newPositions.forEach(position=>{
+          //TODO: Replace old position with new one in database and database cache
+        });
+      }, ()=>{
+        console.log("toManage promise.all rejected");
+      }).then(()=>{
+        console.log("Telling core to send next tick");
+        fulfill();
+      }, ()=>{
+        console.log("eachTick main promise rejected.  Sending next tick.");
+      });// fulfill when done evaluating all conditions of all positions
+    });
   });
 };

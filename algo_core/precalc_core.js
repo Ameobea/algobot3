@@ -104,6 +104,7 @@ core.iterPrices = (dbData, pair, db, index, pricesCollection, averagesCollection
       averages: curAverages[pair], crosses: curCrosses};
     
     tradeGen.eachTick(data, db).then(()=>{
+      console.log("Simulator sending next tick.");
       fulfill(); //once done processing latest trade data, send next price update.
     });
   }).then(()=>{

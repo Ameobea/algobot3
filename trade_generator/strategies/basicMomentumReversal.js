@@ -13,6 +13,11 @@ var ledger = require("../ledger");
 var logger = require("../tradeLogger");
 var environment = require("../tradeManager/conditionEnvironment");
 
+var Promise = require("bluebird");
+Promise.onPossiblyUnhandledRejection(function(error){
+    throw error;
+});
+
 strat.config = {
   averagePeriod: 5000,
   momentumPeriod: 5000
@@ -26,71 +31,104 @@ strat.state = {
 };
 
 strat.eachUpdate = (data, db)=>{
-  var env = environment.getEnv(data);
+  return new Promise((fulfill, reject)=>{
+    var env = environment.getEnv(data);
 
-  var curMomentum = env.curMomentum({ //this is just a number, no timestamp array etc.
-    averagePeriod: strat.config.averagePeriod,
-    momentumPeriod: strat.config.momentumPeriod
-  });
+    var curMomentum = env.curMomentum({ //this is just a number, no timestamp array etc.
+      averagePeriod: strat.config.averagePeriod,
+      momentumPeriod: strat.config.momentumPeriod
+    });
 
-  var curDirection = curMomentum > strat.state.lastMomentum;
+    if(curMomentum){
+      if(typeof strat.state.lastMomentum == "undefined"){
+        strat.state.lastMomentum = curMomentum;
+      }
 
-  if(typeof strat.state.lastMomentum == "undefined"){
-    strat.state.lastMomentum = curMomentum;
-  }
+      if(typeof strat.state.negative == "undefined"){
+        strat.state.negative = curMomentum < 0;
+      }else{
+        if(strat.state.negative != curMomentum < 0){ //if momentum crosses 0
+          strat.state.tradeState = true; //we're ready to make a trade
+        }
+      }
 
-  if(typeof strat.state.negative == "undefined"){
-    strat.state.negative == curMomentum > 0;
-  }else{
-    if(strat.state.negative != curMomentum > 0){ //if momentum crosses 0
-      strat.tradeState = true; //we're ready to make a trade
-    }
-  }
+      var curDirection = curMomentum > strat.state.lastMomentum;
 
-  if( strat.tradeState && //ready to make a trade
-      strat.state.lastDirection != curDirection && //momentum direction changed
-      curMomentum > strat.state.lastMomentum != strat.state.negative){ //direction changed towards reversing negativity
-    // if momentum direction has changed
+      if( strat.state.tradeState && //ready to make a trade
+          strat.state.lastDirection != curDirection && //momentum direction changed
+          curMomentum > strat.state.lastMomentum != strat.state.negative){ //direction changed towards reversing negativity
 
-    var state = {
-      negative: strat.state.negative,
-      direction: curDirection
-    }
+        var state = {
+          negative: strat.state.negative,
+          direction: curDirection,
+          averagePeriod: strat.config.averagePeriod,
+          momentumPeriod: strat.config.momentumPeriod
+        }
 
-    var condition = {
-      id: uuid(),
-      func: (env, state, actions)=>{
-        return new Promise((fulfill, reject)=>{
-          env.curMomentum({
-            averagePeriod: strat.config.averagePeriod,
-            momentumPeriod: strat.config.momentumPeriod
-          }).then(momentum=>{
+        var func = function(env, state, actions){
+          return new Promise((fulfill, reject)=>{
+            var momentum = env.curMomentum({
+              averagePeriod: state.averagePeriod,
+              momentumPeriod: state.momentumPeriod
+            });
+
             if(!state.lastMomentum){
               state.lastMomentum = momentum;
             }else{
               if( momentum > state.lastMomentum != state.direction && // momentum direction has changed and
                   state.negative != momentum > 0){ // momentum sign has changed
-                actions.closePosition()
+                env.fetchTick({cur: true}, db).then(tick=>{
+                  var price;
+                  if(env.direction){
+                    price = tick.ask;
+                  }else{
+                    price = tick.bid
+                  }
+
+                  actions.closePosition(price).then(()=>{
+                    fulfill(this.position);
+                  });
+                });
+              }else{
+                fulfill(this.position);
               }
             }
-          })
-        });
-      }
-    }
-
-    ledger.getBalance(db, balance=>{
-      env.fetch.tick({cur: true}).then(tick=>{
-        var price;
-        if(curDirection){
-          price = tick.ask;
-        }else{
-          price = tick.bid;
+          });
         }
 
-        ledger.openPosition(env.pair, price, balance*.02, curDirection, [condition], db, ()=>{
-          logger.logOpenTrade(env.pair, price, balance*.02, curDirection, timestamp, db);
+        var condition = {
+          id: uuid(),
+          state: state,
+          func: func.toString()
+        }
+
+        ledger.getBalance(db, balance=>{
+          env.fetchTick({cur: true}, db).then(tick=>{
+            var price;
+            if(curDirection){
+              price = tick.ask;
+            }else{
+              price = tick.bid;
+            }
+
+            ledger.openPosition(env.pair, price, balance*.02, curDirection, [condition], db, ()=>{
+              logger.logOpenTrade(env.pair, price, balance*.02, curDirection, data.timestamp, db); //TODO: handle promise if we make this a promise
+              strat.state.tradeState = false;
+
+              console.log("New position opened; fulfilling.")
+              fulfill();
+            });
+          });
         });
-      });
-    });
-  }
+      }else{
+        fulfill();
+      }
+
+      strat.state.lastDirection = curMomentum > strat.state.lastMomentum;
+      strat.state.negative = curMomentum < 0;
+      strat.state.lastMomentum = curMomentum;
+    }else{
+      fulfill();
+    }
+  });
 }

@@ -10,6 +10,11 @@ var condEnv = require("./conditionEnvironment");
 var conf = require("../../conf/conf");
 var broker = require("../brokers/" + conf.public.broker);
 
+var Promise = require("bluebird");
+Promise.onPossiblyUnhandledRejection(function(error){
+    throw error;
+});
+
 var manager = exports;
 
 /*Called on each priceUpdate for each open position.  
@@ -19,6 +24,7 @@ See trademanagers.md
 */
 manager.manage = (position, data, evaluated)=>{
   return new Promise((fulfill, reject)=>{
+    console.log("manager.manage");
     if(!evaluated){
       evaluated = [];
     }
@@ -36,22 +42,27 @@ manager.manage = (position, data, evaluated)=>{
 if it returns a new version of the position
 use that to evaulate the other positions.*/
 manager.iterConditions = (position, data, env, actions, evaled, callback)=>{
-  var toEval = position.conditions.filter(condition=>{
+  console.log("iterconditions");
+  var unevaledConditions = position.conditions.filter(condition=>{
     return !(condition.id in evaled);
   }); //don't evaluate already evaluated conditions
 
-  evaled.push(toEval[0].id); //add current condition to already evaluated list
+  evaled.push(unevaledConditions[0].id); //add current condition to already evaluated list
 
-  if(toEval.length > 0){
-    toEval[0].func(env, position.status, actions).then(newPosition=>{
+  if(unevaledConditions.length > 0){
+    console.log("Evaluationg condition...");
+    var func = eval(unevaledConditions[0].func);
+    func(env, unevaledConditions[0].state, actions).then(newPosition=>{ //***TODO: make these callbacks work.
       if(newPosition){//if the condition returned a new version of the position
+        console.log("Evaluating next condition with new position");
         manager.iterConditions(newPosition, data, env, actions, evaled, callback);
       }else{
         manager.iterConditions(position, data, env, actions, evaled, callback);
       }
     });
   }else{
-    callback(position); //when all conditions are evaluted, return the updated position
+    console.log("Done evaluating all conditions for position");
+    callback(position); //when all conditions are evaluated, return the updated position
   } 
 };
 
