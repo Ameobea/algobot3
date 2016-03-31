@@ -83,26 +83,26 @@ ledger.openPosition = (pair, price, size, direction, conditions, db, callback)=>
       positions.insertOne(doc, (err, res)=>{
         callback(res.insertedId);
       });
-    });
+    }).catch(err=>{console.log(err);});
   });
 };
 
-ledger.resizePosition = (postion, multiplier, db)=>{
+ledger.resizePosition = (position, multiplier, db)=>{
   return new Promise((fulfill, reject)=>{
     broker.resizePosition(position.pair, multiplier).then(()=>{
-      positions.updateOne({id: id}, {size: position.size * multiplier}).then(()=>{
+      db.collection("positions").updateOne({id: position.id}, {size: position.size * multiplier}).then(()=>{
         position.size = position.size * multiplier;
         fulfill(position);
-      });
-    });
+      }).catch(err=>{console.log(err);});
+    }).catch(err=>{console.log(err);});
   });
-}
+};
 
 ledger.closePosition = (position, closePrice, db, callback)=>{
   broker.closePosition(position.pair, position.size).then(()=>{
     ledger.updateBalance(position.units * closePrice, db, ()=>{
-      var doc = {id: id};
-      positions.removeOne(doc, callback);
+      var doc = {id: position.id};
+      db.collection("positions").removeOne(doc, callback);
     });
-  });
+  }).catch(err=>{console.log(err);});
 };

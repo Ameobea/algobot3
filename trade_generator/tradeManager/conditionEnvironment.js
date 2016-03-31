@@ -5,6 +5,8 @@ Condition Function Environment Functions
 This file contains helper functons that supply information about positions
 and market conditions to condition functions for open positions.  
 */
+var ledger = require("../ledger");
+
 var Promise = require("bluebird");
 Promise.onPossiblyUnhandledRejection(function(error){
     throw error;
@@ -12,34 +14,32 @@ Promise.onPossiblyUnhandledRejection(function(error){
 
 var conditionEnvironment = exports;
 
-conditionEnvironment.getActions = (position, broker)=>{
+conditionEnvironment.getActions = (env, broker)=>{
   var actions = {};
 
   actions.resizePosition = multiplier=>{
     return new Promise((fulfill, reject)=>{
-      ledger.resizePosition(position, multiplier, db).then(()=>{
-        fulfill(newPosition=>{
-          position = newPosition;
-        });
-      });
+      ledger.resizePosition(this, multiplier, env.db).then(newPosition=>{
+        fulfill(newPosition);
+      }).catch(err=>{console.log(err);});
     });
   };
 
   actions.closePosition = closePrice=>{
     return new Promise((fulfill, reject)=>{
-      ledger.closePosition(position, closePrice, db, ()=>{
+      ledger.closePosition(this, closePrice, env.db, ()=>{
         fulfill();
       });
     });
-  }
+  };
 
   actions.addCondition = condition=>{
-    position.conditions.push(condition);
+    this.conditions.push(condition);
   };
 
   actions.removeCondition = id=>{
-    position.conditions = position.conditions.filter(id=>{
-      return id != position.id;
+    this.conditions = this.conditions.filter(id=>{
+      return id != this.id;
     });
   };
 
@@ -47,8 +47,10 @@ conditionEnvironment.getActions = (position, broker)=>{
 };
 
 // data is the collection of information sent/maintained by the bot on each price update
-conditionEnvironment.getEnv = (data)=>{
+conditionEnvironment.getEnv = (data, db)=>{
   var env = data;
+
+  env.db = db;
 
   env.curMomentum = req=>{
     if(env.momentums[req.averagePeriod.toString()] && env.momentums[req.momentumPeriod.toString()]){
@@ -74,7 +76,7 @@ conditionEnvironment.getEnv = (data)=>{
     }
   };
 
-  env.fetchTick = (req, db)=>{
+  env.fetchTick = req=>{
     var pair, timestamp;
 
     if(!req.cur){
@@ -86,7 +88,7 @@ conditionEnvironment.getEnv = (data)=>{
     }
 
     return new Promise((fulfill, reject)=>{
-      db.collection("ticks").find({pair: pair, timestamp: timestamp}).toArray((err, ticks)=>{
+      env.db.collection("ticks").find({pair: pair, timestamp: timestamp}).toArray((err, ticks)=>{
         fulfill(ticks[0]);
       });
     });

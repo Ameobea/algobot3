@@ -22,18 +22,18 @@ Conditions for each of the open positions are evaluated
 and actions are taken depending on their results.
 See trademanagers.md
 */
-manager.manage = (position, data, evaluated)=>{
+manager.manage = (position, data, evaluated, db)=>{
   return new Promise((fulfill, reject)=>{
-    console.log("manager.manage");
     if(!evaluated){
       evaluated = [];
     }
 
-    var env = condEnv.getEnv(data);
-    var actions = condEnv.getActions(position);
+    var env = condEnv.getEnv(data, db);
+    var actions = condEnv.getActions(env, position, broker);
 
-    manager.iterConditions(position, data, env, actions, [], condition=>{
-      fulfill(condition);
+    manager.iterConditions(position, data, env, actions, [], position=>{
+      console.log("Done managing position; fulfilling.");
+      fulfill(position);
     });
   });
 };
@@ -42,24 +42,28 @@ manager.manage = (position, data, evaluated)=>{
 if it returns a new version of the position
 use that to evaulate the other positions.*/
 manager.iterConditions = (position, data, env, actions, evaled, callback)=>{
-  console.log("iterconditions");
   var unevaledConditions = position.conditions.filter(condition=>{
-    return !(condition.id in evaled);
+    var inn = false;
+    evaled.forEach(elem=>{
+      if(condition.id == elem){
+        inn = true;
+      }
+    })
+    return inn;
   }); //don't evaluate already evaluated conditions
 
-  evaled.push(unevaledConditions[0].id); //add current condition to already evaluated list
-
   if(unevaledConditions.length > 0){
-    console.log("Evaluationg condition...");
-    var func = eval(unevaledConditions[0].func);
-    func(env, unevaledConditions[0].state, actions).then(newPosition=>{ //***TODO: make these callbacks work.
+    evaled.push(unevaledConditions[0].id); //add current condition to already evaluated list
+    var func;
+    eval("func = " + unevaledConditions[0].func);
+    func.call(position, env, unevaledConditions[0].state, actions).then(newPosition=>{
       if(newPosition){//if the condition returned a new version of the position
-        console.log("Evaluating next condition with new position");
+        console.log(env.timestamp);
         manager.iterConditions(newPosition, data, env, actions, evaled, callback);
       }else{
         manager.iterConditions(position, data, env, actions, evaled, callback);
       }
-    });
+    }).catch(err=>{console.log("Inside func.call promise" + err);});
   }else{
     console.log("Done evaluating all conditions for position");
     callback(position); //when all conditions are evaluated, return the updated position

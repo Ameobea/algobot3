@@ -17,6 +17,15 @@ Promise.onPossiblyUnhandledRejection(function(error){
     throw error;
 });
 
+process.on("unhandledRejection", function(reason, promise) {
+    console.log(reason);
+});
+
+// NOTE: event name is camelCase as per node convention
+process.on("rejectionHandled", function(promise) {
+    console.log("handled rejection");
+});
+
 var positionsCache = []; 
 // TODO: add functionality to get open positions from broker if bot fails
 // TODO: Close all positions in case of an actual emergency where we have open positions with broker of which we have no record
@@ -32,30 +41,22 @@ tradeGen.eachTick = (data, db)=>{
     });
 
     Promise.all(toManage).then(()=>{
-      console.log("Finished evaluating all strategies.");
-
       //if(positionsCache == []){
-        ledger.getPositions(pair, {}, db).then(positions => positionsCache = positions);
+        ledger.getPositions(pair, {}, db).then(positions => positionsCache = positions).catch(err=>{console.log(err);});
       //}
 
       toManage = [];
       positionsCache.forEach(position=>{
-        toManage.push(manager.manage(position, data, []));
+        toManage.push(manager.manage(position, data, [], db));
       });
 
       Promise.all(toManage).then(newPositions=>{
-        console.log(newPositions);
         newPositions.forEach(position=>{
           //TODO: Replace old position with new one in database and database cache
         });
-      }, ()=>{
-        console.log("toManage promise.all rejected");
-      }).then(()=>{
-        console.log("Telling core to send next tick");
+      }).catch(err=>{console.log(err);}).then(()=>{
         fulfill();
-      }, ()=>{
-        console.log("eachTick main promise rejected.  Sending next tick.");
-      });// fulfill when done evaluating all conditions of all positions
-    });
+      }, ()=>{}).catch(err=>{console.log(err);});// fulfill when done evaluating all conditions of all positions
+    }).catch(err=>{console.log(err);});
   });
 };

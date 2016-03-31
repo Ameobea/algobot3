@@ -21,7 +21,7 @@ Promise.onPossiblyUnhandledRejection(function(error){
 strat.config = {
   averagePeriod: 5000,
   momentumPeriod: 5000
-}
+};
 
 strat.state = {
   tradeState: false, //false if a trade has already been executed on this side of 0
@@ -32,7 +32,7 @@ strat.state = {
 
 strat.eachUpdate = (data, db)=>{
   return new Promise((fulfill, reject)=>{
-    var env = environment.getEnv(data);
+    var env = environment.getEnv(data, db);
 
     var curMomentum = env.curMomentum({ //this is just a number, no timestamp array etc.
       averagePeriod: strat.config.averagePeriod,
@@ -63,7 +63,7 @@ strat.eachUpdate = (data, db)=>{
           direction: curDirection,
           averagePeriod: strat.config.averagePeriod,
           momentumPeriod: strat.config.momentumPeriod
-        }
+        };
 
         var func = function(env, state, actions){
           return new Promise((fulfill, reject)=>{
@@ -74,33 +74,37 @@ strat.eachUpdate = (data, db)=>{
 
             if(!state.lastMomentum){
               state.lastMomentum = momentum;
+              console.log("First check");
+              fulfill();
             }else{
               if( momentum > state.lastMomentum != state.direction && // momentum direction has changed and
                   state.negative != momentum > 0){ // momentum sign has changed
-                env.fetchTick({cur: true}, db).then(tick=>{
+                env.fetchTick({cur: true}, env.db).then(tick=>{
                   var price;
                   if(env.direction){
                     price = tick.ask;
                   }else{
-                    price = tick.bid
+                    price = tick.bid;
                   }
 
-                  actions.closePosition(price).then(()=>{
-                    fulfill(this.position);
-                  });
-                });
+                  actions.closePosition.apply(this, price).then(()=>{
+                    console.log("position closed.");
+                    fulfill(false);
+                  }).catch(err=>{console.log(err);});
+                }).catch(err=>{console.log(err);});
               }else{
-                fulfill(this.position);
+                console.log("shouldn't close position.");
+                fulfill(this);
               }
             }
           });
-        }
+        };
 
         var condition = {
           id: uuid(),
           state: state,
           func: func.toString()
-        }
+        };
 
         ledger.getBalance(db, balance=>{
           env.fetchTick({cur: true}, db).then(tick=>{
@@ -111,14 +115,14 @@ strat.eachUpdate = (data, db)=>{
               price = tick.bid;
             }
 
-            ledger.openPosition(env.pair, price, balance*.02, curDirection, [condition], db, ()=>{
-              logger.logOpenTrade(env.pair, price, balance*.02, curDirection, data.timestamp, db); //TODO: handle promise if we make this a promise
+            ledger.openPosition(env.pair, price, balance*0.02, curDirection, [condition], db, ()=>{
+              logger.logOpenTrade(env.pair, price, balance*0.02, curDirection, data.timestamp, db); //TODO: handle promise if we make this a promise
               strat.state.tradeState = false;
 
-              console.log("New position opened; fulfilling.")
+              console.log("New position opened; fulfilling.");
               fulfill();
             });
-          });
+          }).catch(err=>{console.log(err);});
         });
       }else{
         fulfill();
@@ -131,4 +135,4 @@ strat.eachUpdate = (data, db)=>{
       fulfill();
     }
   });
-}
+};

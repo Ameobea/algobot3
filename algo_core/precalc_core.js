@@ -39,7 +39,7 @@ core.start = ()=>{
 
         core.loadDatabase(pair, startTime, endTime, db).then(dbData=>{
           core.doBacktest(pair, dbData, startTime, endTime, db);
-        });
+        }).catch(err=>{console.log(err);});
       }
     });
   });
@@ -104,13 +104,12 @@ core.iterPrices = (dbData, pair, db, index, pricesCollection, averagesCollection
       averages: curAverages[pair], crosses: curCrosses};
     
     tradeGen.eachTick(data, db).then(()=>{
-      console.log("Simulator sending next tick.");
       fulfill(); //once done processing latest trade data, send next price update.
-    });
+    }).catch(err=>{console.log(err);});
   }).then(()=>{
     //simulate the next price update being sent
     core.iterPrices(dbData, pair, db, index + 1, pricesCollection, averagesCollection, momentumCollection, crossesCollection);
-  });
+  }).catch(err=>{console.log(err);});
 };
 
 //start times are inclusive, while end times are non-inclusive
@@ -128,7 +127,7 @@ core.loadDatabase = (pair, startTime, endTime, db)=>{
 
     Promise.all(promises).then(res=>{
       fulfill(res);
-    });
+    }).catch(err=>{console.log(err);})
   });
 };
 
