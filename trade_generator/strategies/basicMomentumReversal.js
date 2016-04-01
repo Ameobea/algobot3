@@ -53,32 +53,36 @@ strat.eachUpdate = (data, db)=>{
       }
 
       var curDirection = curMomentum > strat.state.lastMomentum;
+      //DOING THIS MAKES NO SENSE BUT I'M DOING IT BECAUSE THE ERROR MAKES NO SENSE
+      //curDirection = !curDirection;
 
       if( strat.state.tradeState && //ready to make a trade
           strat.state.lastDirection != curDirection && //momentum direction changed
           curMomentum > strat.state.lastMomentum != strat.state.negative){ //direction changed towards reversing negativity
 
-        var state = {
-          negative: strat.state.negative,
-          direction: curDirection,
-          averagePeriod: strat.config.averagePeriod,
-          momentumPeriod: strat.config.momentumPeriod
-        };
+        env.pairClear(env.pair).then(()=>{
+          var state = {
+            negative: strat.state.negative,
+            lastDirection: curDirection,
+            averagePeriod: strat.config.averagePeriod,
+            momentumPeriod: strat.config.momentumPeriod,
+            goalNegative: curMomentum < 0, //static; close position when negativity swaps
+            goalDirection: !curDirection //static; close position when direction changes
+          };
 
-        var func = function(env, state, actions){
-          return new Promise((fulfill, reject)=>{
-            var momentum = env.curMomentum({
-              averagePeriod: state.averagePeriod,
-              momentumPeriod: state.momentumPeriod
-            });
-
-            if(!state.lastMomentum){
+          var func = function(env, state, actions){
+            //helper functions
+            var updateState = momentum=>{
+              if(momentum != state.lastMomentum){
+                state.lastDirection = momentum > state.lastMomentum;
+              }
+              state.negative = momentum < 0;
               state.lastMomentum = momentum;
-              console.log("First check");
-              fulfill();
-            }else{
-              if( momentum > state.lastMomentum != state.direction && // momentum direction has changed and
-                  state.negative != momentum > 0){ // momentum sign has changed
+            }
+
+            var closeSelf = ()=>{
+              return new Promise((f,r)=>{
+                console.log("trying to close position.");
                 env.fetchTick({cur: true}, env.db).then(tick=>{
                   var price;
                   if(env.direction){
@@ -87,48 +91,68 @@ strat.eachUpdate = (data, db)=>{
                     price = tick.bid;
                   }
 
-                  actions.closePosition.apply(this, price).then(()=>{
-                    console.log("position closed.");
-                    fulfill(false);
+                  actions.closePosition(this, price).then(()=>{
+                    env.logger.logClosedTrade(env.pair, this.value, this.openPrice, price, this.direction, env.timestamp, env.db);
+                    f();
                   }).catch(err=>{console.log(err);});
                 }).catch(err=>{console.log(err);});
+              });
+            }
+
+            //main condition code
+            return new Promise((f, r)=>{
+              var momentum = env.curMomentum({
+                averagePeriod: state.averagePeriod,
+                momentumPeriod: state.momentumPeriod
+              });
+
+              if(!state.lastMomentum){
+                state.lastMomentum = momentum;
+                f(this);
               }else{
-                console.log("shouldn't close position.");
-                fulfill(this);
+                if(state.goalNegative == (momentum > 0) && state.goalDirection == momentum > state.lastMomentum){
+                  console.log(state.goalNegative, state.goalDirection, state.lastMomentum);
+                  closeSelf().then(()=>r());//reject only if the position is closed during this condition
+                }else{
+                  updateState(momentum);
+                  f(this);
+                }
               }
-            }
-          });
-        };
-
-        var condition = {
-          id: uuid(),
-          state: state,
-          func: func.toString()
-        };
-
-        ledger.getBalance(db, balance=>{
-          env.fetchTick({cur: true}, db).then(tick=>{
-            var price;
-            if(curDirection){
-              price = tick.ask;
-            }else{
-              price = tick.bid;
-            }
-
-            ledger.openPosition(env.pair, price, balance*0.02, curDirection, [condition], db, ()=>{
-              logger.logOpenTrade(env.pair, price, balance*0.02, curDirection, data.timestamp, db); //TODO: handle promise if we make this a promise
-              strat.state.tradeState = false;
-
-              console.log("New position opened; fulfilling.");
-              fulfill();
             });
-          }).catch(err=>{console.log(err);});
-        });
+          };
+
+          var condition = {
+            id: uuid(),
+            state: state,
+            func: func.toString()
+          };
+
+          ledger.getBalance(db, balance=>{
+            env.fetchTick({cur: true}, db).then(tick=>{
+              var price;
+              if(curDirection){
+                price = tick.ask;
+              }else{
+                price = tick.bid;
+              }
+
+              ledger.openPosition(env.pair, price, balance*0.02, !curDirection, [condition], db, ()=>{
+                logger.logOpenTrade(env.pair, price, balance*0.02, !curDirection, data.timestamp, db); //TODO: handle promise if we make this a promise
+                strat.state.tradeState = false;
+
+                fulfill();
+              });
+            }).catch(err=>{console.log(err);});
+          });
+        }, ()=>{fulfill();});
       }else{
         fulfill();
       }
 
-      strat.state.lastDirection = curMomentum > strat.state.lastMomentum;
+      //update strategy's state
+      if(curMomentum != strat.state.lastMomentum){ //if momentum has been updated this price update
+        strat.state.lastDirection = curMomentum > strat.state.lastMomentum;
+      }
       strat.state.negative = curMomentum < 0;
       strat.state.lastMomentum = curMomentum;
     }else{

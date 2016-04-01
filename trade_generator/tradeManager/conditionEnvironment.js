@@ -17,29 +17,29 @@ var conditionEnvironment = exports;
 conditionEnvironment.getActions = (env, broker)=>{
   var actions = {};
 
-  actions.resizePosition = multiplier=>{
+  actions.resizePosition = (position, multiplier)=>{
     return new Promise((fulfill, reject)=>{
-      ledger.resizePosition(this, multiplier, env.db).then(newPosition=>{
+      ledger.resizePosition(position, multiplier, env.db).then(newPosition=>{
         fulfill(newPosition);
       }).catch(err=>{console.log(err);});
     });
   };
 
-  actions.closePosition = closePrice=>{
+  actions.closePosition = (position, closePrice)=>{
     return new Promise((fulfill, reject)=>{
-      ledger.closePosition(this, closePrice, env.db, ()=>{
+      ledger.closePosition(position, closePrice, env.db).then(()=>{
         fulfill();
       });
     });
   };
 
-  actions.addCondition = condition=>{
-    this.conditions.push(condition);
+  actions.addCondition = (position, condition)=>{
+    position.conditions.push(condition);
   };
 
-  actions.removeCondition = id=>{
-    this.conditions = this.conditions.filter(id=>{
-      return id != this.id;
+  actions.removeCondition = (position, id)=>{
+    position.conditions = position.conditions.filter(id=>{
+      return id != position.id;
     });
   };
 
@@ -51,6 +51,7 @@ conditionEnvironment.getEnv = (data, db)=>{
   var env = data;
 
   env.db = db;
+  env.logger = require("../tradeLogger");
 
   env.curMomentum = req=>{
     if(env.momentums[req.averagePeriod.toString()] && env.momentums[req.momentumPeriod.toString()]){
@@ -75,6 +76,11 @@ conditionEnvironment.getEnv = (data, db)=>{
       return false;
     }
   };
+
+  //returns true if no
+  env.pairClear = pair=>{
+    return ledger.checkPairClear(pair, env.db);
+  }
 
   env.fetchTick = req=>{
     var pair, timestamp;

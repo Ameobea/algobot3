@@ -31,8 +31,7 @@ manager.manage = (position, data, evaluated, db)=>{
     var env = condEnv.getEnv(data, db);
     var actions = condEnv.getActions(env, position, broker);
 
-    manager.iterConditions(position, data, env, actions, [], position=>{
-      console.log("Done managing position; fulfilling.");
+    manager.iterConditions(position, env, actions, [], position=>{
       fulfill(position);
     });
   });
@@ -41,12 +40,12 @@ manager.manage = (position, data, evaluated, db)=>{
 /*for each condition, evaluate and then 
 if it returns a new version of the position
 use that to evaulate the other positions.*/
-manager.iterConditions = (position, data, env, actions, evaled, callback)=>{
+manager.iterConditions = (position, env, actions, evaled, callback)=>{
   var unevaledConditions = position.conditions.filter(condition=>{
-    var inn = false;
+    var inn = true;
     evaled.forEach(elem=>{
       if(condition.id == elem){
-        inn = true;
+        inn = false;
       }
     })
     return inn;
@@ -58,14 +57,15 @@ manager.iterConditions = (position, data, env, actions, evaled, callback)=>{
     eval("func = " + unevaledConditions[0].func);
     func.call(position, env, unevaledConditions[0].state, actions).then(newPosition=>{
       if(newPosition){//if the condition returned a new version of the position
-        console.log(env.timestamp);
-        manager.iterConditions(newPosition, data, env, actions, evaled, callback);
+        manager.iterConditions(newPosition, env, actions, evaled, callback);
       }else{
-        manager.iterConditions(position, data, env, actions, evaled, callback);
+        manager.iterConditions(position, env, actions, evaled, callback);
       }
+    }, ()=>{//rejection of condition = position closed.
+      console.log("Condition rejected; position closed.");
+      callback(false);
     }).catch(err=>{console.log("Inside func.call promise" + err);});
   }else{
-    console.log("Done evaluating all conditions for position");
     callback(position); //when all conditions are evaluated, return the updated position
   } 
 };

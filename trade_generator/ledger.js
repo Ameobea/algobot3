@@ -47,7 +47,7 @@ ledger.getBalance = (db, callback)=>{
 ledger.updateBalance = (diff, db, callback)=>{
  ledger.getBalance(db, balance=>{
     db.collection("account").updateOne({type: "balance"}, {$set:{balance: balance + diff}}, ()=>{
-      console.log("account credited " + diff);
+      //console.log("account credited " + diff);
       callback();
     });
   });
@@ -70,6 +70,14 @@ ledger.getPositions = (pair, descrim, db)=>{
     }
   });
 };
+
+ledger.updatePosition = (position, db)=>{
+  return new Promise((f, r)=>{
+    db.collection("positions").replaceOne({id: position.id}, position).then(()=>{
+      f();
+    })
+  });
+}
 
 //size in dollars atm
 //calls back with the ID of inserted position
@@ -98,11 +106,32 @@ ledger.resizePosition = (position, multiplier, db)=>{
   });
 };
 
-ledger.closePosition = (position, closePrice, db, callback)=>{
-  broker.closePosition(position.pair, position.size).then(()=>{
-    ledger.updateBalance(position.units * closePrice, db, ()=>{
-      var doc = {id: position.id};
-      db.collection("positions").removeOne(doc, callback);
-    });
-  }).catch(err=>{console.log(err);});
+ledger.closePosition = (position, closePrice, db)=>{
+  return new Promise((f,r)=>{
+    broker.closePosition(position.pair, position.size).then(()=>{
+      ledger.updateBalance(position.units * closePrice, db, ()=>{
+        var doc = {id: position.id};
+        db.collection("positions").removeOne(doc, ()=>{
+          f();
+        });
+      });
+    }).catch(err=>{console.log(err);});
+  });
 };
+
+//fulfills if no open positions in `pair`; rejects if one is open.
+ledger.checkPairClear = (pair, db)=>{
+  return new Promise((fulfill, reject)=>{
+    db.collection("positions").find().toArray((err, res)=>{
+      var res = res.filter(position=>{
+        return position.pair == pair;
+      });
+
+      if(res.length == 0){
+        fulfill();
+      }else{
+        reject();
+      }
+    });
+  });
+}

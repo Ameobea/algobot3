@@ -34,29 +34,38 @@ var positionsCache = [];
 tradeGen.eachTick = (data, db)=>{
   return new Promise((fulfill, reject)=>{
     var pair = data.pair;
-    var toManage = [];
+    var toProcess = [];
 
     strats.forEach(strat=>{
-      toManage.push(strat.eachUpdate(data, db));
+      toProcess.push(strat.eachUpdate(data, db));
     });
 
-    Promise.all(toManage).then(()=>{
+    Promise.all(toProcess).then(()=>{
+      //all strategies evaluted.
       //if(positionsCache == []){
-        ledger.getPositions(pair, {}, db).then(positions => positionsCache = positions).catch(err=>{console.log(err);});
-      //}
+        ledger.getPositions(pair, {}, db).then(positions=>{
+          positionsCache = positions;
+        }).then(()=>{
+          toProcess = [];
+          positionsCache.forEach(position=>{
+            toProcess.push(manager.manage(position, data, [], db));
+          });
 
-      toManage = [];
-      positionsCache.forEach(position=>{
-        toManage.push(manager.manage(position, data, [], db));
-      });
+          Promise.all(toProcess).then(newPositions=>{
+            //all conditions are processed for all open positions returning mutated positions
+            toProcess = [];
+            newPositions.forEach(position=>{
+              if(position){ //position has not been closed
+                toProcess.push(ledger.updatePosition(position, db));
+              }
+            });
 
-      Promise.all(toManage).then(newPositions=>{
-        newPositions.forEach(position=>{
-          //TODO: Replace old position with new one in database and database cache
-        });
-      }).catch(err=>{console.log(err);}).then(()=>{
-        fulfill();
-      }, ()=>{}).catch(err=>{console.log(err);});// fulfill when done evaluating all conditions of all positions
+            Promise.all(toProcess).then(()=>{
+              fulfill(); //we're finally ready for the next tick
+            }).catch(err=>{console.log(err);});
+          }).catch(err=>{console.log(err);});// fulfill when done evaluating all conditions of all positions
+        })
+      //} 
     }).catch(err=>{console.log(err);});
   });
 };
