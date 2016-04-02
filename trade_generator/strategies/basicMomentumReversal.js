@@ -78,7 +78,7 @@ strat.eachUpdate = (data, db)=>{
               }
               state.negative = momentum < 0;
               state.lastMomentum = momentum;
-            }
+            };
 
             var closeSelf = ()=>{
               return new Promise((f,r)=>{
@@ -97,7 +97,7 @@ strat.eachUpdate = (data, db)=>{
                   }).catch(err=>{console.log(err);});
                 }).catch(err=>{console.log(err);});
               });
-            }
+            };
 
             //main condition code
             return new Promise((f, r)=>{

@@ -64,7 +64,7 @@ tradeGen.eachTick = (data, db)=>{
               fulfill(); //we're finally ready for the next tick
             }).catch(err=>{console.log(err);});
           }).catch(err=>{console.log(err);});// fulfill when done evaluating all conditions of all positions
-        })
+        });
       //} 
     }).catch(err=>{console.log(err);});
   });

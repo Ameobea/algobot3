@@ -10,16 +10,20 @@ public class TickRecorder {
         O2GSession session = FXCMConnect(Config.FXCMUsername, Config.FXCMPassword, Config.FXCMHostsURL, Config.connectionType);
         
         //printPrices(session);
-        
-        O2GTableManager tableManager = session.getTableManager();
-        O2GOffersTable offersTable = (O2GOffersTable)tableManager.getTable(O2GTableType.OFFERS);
-        
-        ResponseListener responseListener = new ResponseListener(session);
-        session.subscribeResponse(responseListener);
-        
-        //subscribeToPriceUpdates(offersTable);
-        
-        setupRedis(session);
+        try{
+            O2GTableManager tableManager = session.getTableManager();
+            O2GOffersTable offersTable = (O2GOffersTable)tableManager.getTable(O2GTableType.OFFERS);
+
+            ResponseListener responseListener = new ResponseListener(session);
+            session.subscribeResponse(responseListener);
+
+            //subscribeToPriceUpdates(offersTable);
+
+            setupRedis(session);
+        }catch(java.lang.NullPointerException ex){
+            System.out.println("Unable to connect.  Most likely the servers are down for maintenance.  ");
+            System.exit(0);
+        }
         
         while(true){
             try{
@@ -88,6 +92,9 @@ public class TickRecorder {
         try{
             client = redisPool.getResource();
             client.publish(channel, message);
+        }catch(redis.clients.jedis.exceptions.JedisConnectionException ex){
+            //try again.
+            redisPublish(channel, message);
         }finally{
             if(client != null){
                 client.close();

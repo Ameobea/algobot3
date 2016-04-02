@@ -75,9 +75,9 @@ ledger.updatePosition = (position, db)=>{
   return new Promise((f, r)=>{
     db.collection("positions").replaceOne({id: position.id}, position).then(()=>{
       f();
-    })
+    });
   });
-}
+};
 
 //size in dollars atm
 //calls back with the ID of inserted position
@@ -123,15 +123,15 @@ ledger.closePosition = (position, closePrice, db)=>{
 ledger.checkPairClear = (pair, db)=>{
   return new Promise((fulfill, reject)=>{
     db.collection("positions").find().toArray((err, res)=>{
-      var res = res.filter(position=>{
+      res = res.filter(position=>{
         return position.pair == pair;
       });
 
-      if(res.length == 0){
+      if(res.length === 0){
         fulfill();
       }else{
         reject();
       }
     });
   });
-}
+};

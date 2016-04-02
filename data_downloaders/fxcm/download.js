@@ -16,11 +16,11 @@ var conf = require("../../conf/conf");
 
 //unix timestamp format.
 var pair = "usdcad"; //like "usdcad"
-var startTime = 1452017368590; //like 1393826400 * 1000
-var endTime = 1457244000 * 1000;
+var startTime = 1457572877950; //like 1393826400 * 1000
+var endTime = 1459531254 * 1000;
 
 //time between data requests
-var downloadDelay = 50;
+var downloadDelay = 1;
 
 var redisPubclient = redis.createClient();
 var redisSubClient = redis.createClient();

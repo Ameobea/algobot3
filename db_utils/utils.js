@@ -88,6 +88,8 @@ dbUtil.indexIterator = (db, timeout)=>{
   }
 };
 
+//TODO: Make this only select some data if we don't want all of it.  
+//e.g. every other element for prices, etc.
 dbUtil.fetchData = (pair, type, props, range, callback)=>{
   dbUtil.mongoConnect((db)=>{
     var collection = db.collection(type);

@@ -47,7 +47,7 @@ manager.iterConditions = (position, env, actions, evaled, callback)=>{
       if(condition.id == elem){
         inn = false;
       }
-    })
+    });
     return inn;
   }); //don't evaluate already evaluated conditions
 

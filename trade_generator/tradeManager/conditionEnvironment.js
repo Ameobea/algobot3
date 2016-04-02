@@ -80,7 +80,7 @@ conditionEnvironment.getEnv = (data, db)=>{
   //returns true if no
   env.pairClear = pair=>{
     return ledger.checkPairClear(pair, env.db);
-  }
+  };
 
   env.fetchTick = req=>{
     var pair, timestamp;
