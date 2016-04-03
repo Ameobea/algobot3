@@ -38,7 +38,9 @@ maCross.calc = (pair, lastAverages, newAveragePeriod, newAverage, timestamp, db,
         crossStatuses[pair][newAveragePeriod.toString()][monitoredPeriod.toString()] = curStatus;
         
         changes.push({period: newAveragePeriod, compPeriod: monitoredPeriod, direction: curStatus});
-        maCross.storeCross(pair, timestamp, newAveragePeriod, monitoredPeriod, curStatus, db);
+        if(conf.public.backtestType != "nostore"){
+          maCross.storeCross(pair, timestamp, newAveragePeriod, monitoredPeriod, curStatus, db);
+        }
       }
     }
   });
@@ -47,10 +49,8 @@ maCross.calc = (pair, lastAverages, newAveragePeriod, newAverage, timestamp, db,
 }
 
 maCross.storeCross = (pair, timestamp, period, compPeriod, direction, db)=>{
-  if(db){
-    var crosses = db.collection("smaCrosses");
-    var doc = {pair: pair, timestamp: timestamp, period: period, compPeriod: compPeriod, direction: direction};
-    
-    crosses.insertOne(doc, (res)=>{});
-  }
+  var crosses = db.collection("smaCrosses");
+  var doc = {pair: pair, timestamp: timestamp, period: period, compPeriod: compPeriod, direction: direction};
+  
+  crosses.insertOne(doc, (res)=>{});
 }

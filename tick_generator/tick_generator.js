@@ -12,19 +12,21 @@ var redis = require("redis");
 var conf = require("../conf/conf");
 var dbUtil = require("../db_utils/utils");
 var sma = require("../algos/average/sma");
+var nostoreCore = require("../algo_core/nostore_core");
+var backtest = require("../backtest/backtest");
 
 var tickGenerator = exports;
 
 //TODO: Make it so that it only stores a tick once the previous tick
 //has finished being stored.
+var redisListenClient = redis.createClient();
+var redisPublishClient = redis.createClient();
+
+var prevTick = {}; //last tick from previous average period
+var storeQueue = {}; //stores ticks waiting to be processed&stored
+
 tickGenerator.listen = ()=>{
   dbUtil.mongoConnect(db=>{
-
-    var redisListenClient = redis.createClient();
-    var redisPublishClient = redis.createClient();
-
-    var prevTick = {}; //last tick from previous average period
-    var storeQueue = []; //stores ticks waiting to be processed&stored
 
     redisListenClient.subscribe("ticks");
 
@@ -32,38 +34,56 @@ tickGenerator.listen = ()=>{
     redisListenClient.on("message", (channel, message)=>{
       tick = JSON.parse(message);
 
-      if(!prevTick.timestamp || prevTick.timestamp < tick.timestamp){ //only allow sane ticks through.
-        if(conf.public.storeRawTicks){
-          tickGenerator.storeTick(tick.pair, tick.timestamp, tick.bid, tick.ask, db, ()=>{});
-        }
-        if(conf.public.live == tick.real){// Ignore real ticks if we're backtesting, ignore backtests if we're live
-          tick.price = (tick.bid+tick.ask)/2;
-          if(!prevTick[tick.pair]){
-            prevTick[tick.pair] = tick;
-          }
-          if(!storeQueue[tick.pair]){
-            storeQueue[tick.pair] = [];
-          }
-          storeQueue[tick.pair].push(tick);
-          if(tick.timestamp > prevTick[tick.pair].timestamp+conf.public.priceResolution){ // it's time to calculate an average price
-            storeQueue[tick.pair].unshift(prevTick[tick.pair]);
-            tickGenerator.calcPeriodAverage(storeQueue[tick.pair], tick.timestamp, redisPublishClient, db, (average, prev)=>{
-              prevTick[tick.pair] = prev;
-              storeQueue[tick.pair] = [];
-            });
-          }
-        }
-      }
+      tickGenerator.processTick(tick, db);
     });
   });
 };
 
-tickGenerator.calcPeriodAverage = (ticks, curTime, redisClient, mongoClient, callback)=>{
+tickGenerator.processTick = (tick, db)=>{
+  if(!prevTick.timestamp || prevTick.timestamp < tick.timestamp){ //only allow sane ticks through.
+    if(conf.public.storeRawTicks && conf.public.backtestType != "nostore"){
+      tickGenerator.storeTick(tick.pair, tick.timestamp, tick.bid, tick.ask, db, ()=>{});
+    }
+    if(conf.public.live == tick.real){// Ignore real ticks if we're backtesting, ignore backtests if we're live
+      tick.price = (tick.bid+tick.ask)/2;
+      if(!prevTick[tick.pair]){
+        prevTick[tick.pair] = tick;
+      }
+      if(!storeQueue[tick.pair]){
+        storeQueue[tick.pair] = [];
+      }
+      storeQueue[tick.pair].push(tick);
+      if(tick.timestamp > prevTick[tick.pair].timestamp+conf.public.priceResolution){ // it's time to calculate an average price
+        storeQueue[tick.pair].unshift(prevTick[tick.pair]);
+        tickGenerator.calcPeriodAverage(storeQueue[tick.pair], tick.timestamp, redisPublishClient, db, (average, prev)=>{
+          prevTick[tick.pair] = prev;
+          storeQueue[tick.pair] = [];
+        });
+      }else{
+        if(conf.public.backtestType == "nostore"){
+          backtest.nostoreNext();
+        }
+      }
+    }
+  }
+}
+
+tickGenerator.calcPeriodAverage = (ticks, curTime, redisClient, db, callback)=>{
   if(ticks.length > 0){
     sma.rawCalc(ticks, curTime-1000, curTime, true, periodAverage=>{
-      tickGenerator.storePeriodAverage(ticks[0].pair, curTime, periodAverage, mongoClient, ()=>{
+      tickGenerator.storePeriodAverage(ticks[0].pair, curTime, periodAverage, db, ()=>{
         var publishObject = {pair: ticks[0].pair, timestamp: curTime, price: periodAverage};
-        redisClient.publish("prices", JSON.stringify(publishObject));
+        if(conf.public.backtestType != "nostore"){
+          redisClient.publish("prices", JSON.stringify(publishObject));
+        }else{
+          console.log("Sending tick to core manually");
+          nostoreCore.processUpdate(publishObject, db).then(()=>{
+            backtest.nostoreNext();
+          }, ()=>{ //didn't process fully
+            
+            backtest.nostoreNext();
+          });
+        }
         callback(periodAverage, ticks[ticks.length-1]);
       });
     });
@@ -73,11 +93,15 @@ tickGenerator.calcPeriodAverage = (ticks, curTime, redisClient, mongoClient, cal
 };
 
 tickGenerator.storePeriodAverage = (pair, timestamp, secondAverage, db, callback)=>{
-  var pricesCollection = db.collection("prices");
-  var doc = {pair: pair, timestamp: timestamp, price: secondAverage};
-  pricesCollection.insertOne(doc, (res)=>{
+  if(conf.public.backtestType != "nostore"){
+    var pricesCollection = db.collection("prices");
+    var doc = {pair: pair, timestamp: timestamp, price: secondAverage};
+    pricesCollection.insertOne(doc, (res)=>{
+      callback();
+    });
+  }else{
     callback();
-  });
+  }
 };
 
 tickGenerator.storeTick = (pair, timestamp, bid, ask, db, callback)=>{

@@ -30,9 +30,9 @@ strat.state = {
   lastDirection: undefined //direction the momentum is moving, up or down
 };
 
-strat.eachUpdate = (data, db)=>{
+strat.eachUpdate = (data, db, vardb)=>{
   return new Promise((fulfill, reject)=>{
-    var env = environment.getEnv(data, db);
+    var env = environment.getEnv(data, db, vardb);
 
     var curMomentum = env.curMomentum({ //this is just a number, no timestamp array etc.
       averagePeriod: strat.config.averagePeriod,

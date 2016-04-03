@@ -14,6 +14,7 @@ var redis = require("redis");
 var os = require("os");
 
 var dbUtil = require("../db_utils/utils");
+var tickgen = require("../tick_generator/tick_generator");
 
 var backtest = exports;
 
@@ -197,7 +198,7 @@ backtest.fastSend = (chunk, chunkResult, curIndex, diff, oldTime, pair, client)=
         diff = diff.toString();
         console.log("diff increased to " + diff);
       }
-      if(load < .7 && parseInt(diff) > 10){
+      if(load < .7/* && parseInt(diff) > 10*/){
         diff = parseInt(diff) - 1;
         diff = diff.toString();
         console.log("diff decreased to " + diff);
@@ -222,6 +223,117 @@ backtest.precalced = (pair, startTime, endTime)=>{
   client.publish("backtestStatus", JSON.stringify(obj));
 
   return `Precalced backtest successfully started for pair ${pair}`;
+};
+
+backtest.nostore = (pair, startTime)=>{
+    backtest.checkIfRunning(pair, (running)=>{
+    if(!running){
+      backtest.setRunningFlag(pair, ()=>{
+        var client = redis.createClient();
+        
+        fs.readFile(conf.public.tickDataDirectory + pair.toUpperCase() + '/index.csv', {encoding: 'utf8'}, 'r', (err,data)=>{
+          var result = [];
+          var indexData = data.split('\n');
+          for(let i=1;i<indexData.length;i++){
+            if(indexData[i].length > 3){
+              var temp = indexData[i].split(',');
+              temp[1] *= conf.public.backtestTimestampMultiplier;
+              temp[2] *= conf.public.backtestTimestampMultiplier;
+              result.push(temp);
+            }
+          }
+          var chunk;
+          for(let i=0;i<result.length;i++){
+            if(parseFloat(result[i][2]) > startTime){
+              chunk = parseFloat(result[i][0]);
+              break;
+            }
+          }
+          backtest.readTickFile(pair, chunk, (err, data)=>{
+            var chunkResult = [];
+            var chunkData = data.split('\n');
+            for(let i=1;i<chunkData.length;i++){
+              if(chunkData[i].length > 3){
+                var temp = chunkData[i].split(',');
+                temp[0] *= conf.public.backtestTimestampMultiplier;
+                chunkResult.push(temp);
+              }
+            }
+            var curIndex;
+            for(let i=0;i<chunkResult.length;i++){
+              if(parseFloat(chunkResult[i][0]) > startTime){
+                curIndex = i-1;
+                break;
+              }
+            }
+            dbUtil.mongoConnect(db=>{
+              backtest.nostoreDb = db;
+
+              backtest.nostoreSend(chunk, chunkResult, curIndex, 0, startTime, pair, client); //chunk, chunkResult, curIndex, diff, oldTime, socket
+            })
+          });
+        });
+        return 'Simulation started successfully for symbol ' + pair;
+      });
+    }else{
+      console.log("Backtest already running for symbol " + pair);
+    }
+  });
+}
+
+backtest.nostoreNext = ()=>{
+  backtest.nostoreSend.apply(null, backtest.nostoreState);
+}
+
+backtest.nostoreSend = (chunk, chunkResult, curIndex, diff, oldTime, pair, client)=>{
+  if(curIndex >= chunkResult.length){
+    backtest.stopOne(pair, ()=>{
+      backtest.fast(pair, oldTime + 1, diff);
+    });
+    return;
+  }
+  if(curIndex % conf.public.fastBacktestCheckInterval === 0){ //if this is a check interval
+    backtest.checkIfRunning(pair, (running)=>{
+      var load = os.loadavg()[0];
+
+      if(load > .8){
+        diff = parseInt(diff) + 3;
+        diff = diff.toString();
+        console.log("diff increased to " + diff);
+      }
+      if(load < .7 && parseInt(diff) > 1){ //TODO: seperate for nostore and fast backtests
+        diff = parseInt(diff) - 1;
+        diff = diff.toString();
+        console.log("diff decreased to " + diff);
+      }
+
+      if(!running){ //and it's been cancelled
+        console.log(`Backtest for pair ${pair} stopped.`);
+        return;
+      }else{ //it's a check interval and hasn't been cancelled
+        backtest.nostoreState = [chunk, chunkResult, curIndex + 1, diff, chunkResult[curIndex][0], pair, client];
+
+        console.log("Sending tick to tickgen.");
+        tickgen.processTick({real: false,
+          pair: pair,
+          timestamp: parseFloat(chunkResult[curIndex][0]),
+          ask: parseFloat(chunkResult[curIndex][1]),
+          bid: parseFloat(chunkResult[curIndex][2])
+        }, backtest.nostoreDb);
+      }
+    });
+  }else{ //it's not a check interval
+    backtest.nostoreState = [chunk, chunkResult, curIndex + 1, diff, chunkResult[curIndex][0], pair, client];
+
+    console.log("Sending tick to tickgen.");
+    tickgen.processTick({real: false,
+      pair: pair,
+      timestamp:
+      parseFloat(chunkResult[curIndex][0]),
+      ask: parseFloat(chunkResult[curIndex][1]),
+      bid: parseFloat(chunkResult[curIndex][2])
+    }, backtest.nostoreDb);
+  }
 };
 
 backtest.readTickFile = (pair, chunk, callback)=>{

@@ -6,7 +6,13 @@ var tickGenerator = require("./tick_generator/tick_generator");
 var backtest = require("./backtest/backtest");
 
 var coreString = conf.public.backtestType;
-var core = require(`./algo_core/${backtestType}`);
+var tackon = "_core";
+if(coreString == "normal"){
+  coreString == "core";
+  tackon = "";
+}
+var core = require(`./algo_core/${coreString}${tackon}`);
+
 var dbUtils = require("./db_utils/utils");
 var ledger = require("./trade_generator/ledger");
 
@@ -18,7 +24,6 @@ dbUtils.init(()=>{
   manager.start(conf.public.managerServerPort);
   tickGenerator.listen();
   core.start();
-  precalcCore.start();
 
   if(conf.public.simulatedLedger){
     dbUtils.mongoConnect(db=>{

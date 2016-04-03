@@ -16,6 +16,8 @@ router.post("/backtest/start/:type/:pair", (req, res, next)=>{
     res.send(backtest.live(req.params.pair, req.body.startTime));
   }else if(type == "precalced"){
     res.send(backtest.precalced(req.params.pair, req.body.startTime, req.body.endTime));
+  }else if(type == "nostore"){
+    res.send(backtest.nostore(req.params.pair, req.body.startTime));
   }
 });
 

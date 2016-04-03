@@ -15,14 +15,19 @@ momentum.calcMany = (pair, endTime, averagePeriod, momentumPeriods, db, callback
   var tasks = momentumPeriods.map(x=>{
     return new Promise((fulfill, reject)=>{
       momentum.momentum(pair, endTime, averagePeriod, x, db, (momentum, momentumPeriod)=>{
-        fulfill(callback(momentumPeriod, momentum));
+        if(momentum && momentumPeriod){
+          fulfill(callback(momentumPeriod, momentum));
+        }else{
+          reject();
+        }
       }, storeCb, smasDb);
     });
   });
+
   Promise.all(tasks).then(x=>{
-    finalCallback();
+    finalCallback(true);
   }, x=>{
-    finalCallback();
+    finalCallback(false);
   });
 };
 
@@ -30,10 +35,14 @@ momentum.momentum = (pair, endTime, averagePeriod, momentumPeriod, db, callback,
   var nostore = typeof storeCb != "undefined";
 
   momentum.calc(pair, endTime-momentumPeriod, endTime, averagePeriod, db, momentumValue=>{
-    if(!nostore){
-      momentum.store(pair, averagePeriod, momentumPeriod, endTime, momentumValue, db, callback);
-    }else{
-      storeCb(pair, averagePeriod, momentumPeriod, endTime, momentumValue);
+    if(momentumValue){
+      if(!nostore){
+        momentum.store(pair, averagePeriod, momentumPeriod, endTime, momentumValue, db, callback);
+      }else{
+        storeCb(pair, averagePeriod, momentumPeriod, endTime, momentumValue);
+      }
+    }else{//no momentum able to be calculaed
+      callback(false);
     }
   }, smasDb);
 };
@@ -58,17 +67,22 @@ momentum.calc = (pair, startTime, endTime, averagePeriod, db, callback, smasDb)=
     });
   }else{
     var lastAverage;
-    var filteredDb = smasDb[pair][averagePeriod].filter(elem=>{
+    var filteredDb = smasDb[pair][averagePeriod.toString()].filter(elem=>{
       if(elem.timestamp == endTime){
         lastAverage = elem;
       }
       return elem.timestamp <= startTime;
     });
-    var firstAverage = filteredDb[filteredDb.length-1];
+    
+    if(lastAverage && filteredDb.length > 0){
+      var firstAverage = filteredDb[filteredDb.length-1];
 
-    var time = endTime - startTime;
-    var change = lastAverage.value - firstAverage.value;
-    callback((change / time) * conf.public.momentumMultiplier);
+      var time = endTime - startTime;
+      var change = lastAverage.value - firstAverage.value;
+      callback((change / time) * conf.public.momentumMultiplier);
+    }else{
+      callback(false);
+    }
   }    
 };
 

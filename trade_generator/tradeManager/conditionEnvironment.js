@@ -6,6 +6,7 @@ This file contains helper functons that supply information about positions
 and market conditions to condition functions for open positions.  
 */
 var ledger = require("../ledger");
+var conf = require("../../conf/conf");
 
 var Promise = require("bluebird");
 Promise.onPossiblyUnhandledRejection(function(error){
@@ -47,7 +48,7 @@ conditionEnvironment.getActions = (env, broker)=>{
 };
 
 // data is the collection of information sent/maintained by the bot on each price update
-conditionEnvironment.getEnv = (data, db)=>{
+conditionEnvironment.getEnv = (data, db, vardb)=>{
   var env = data;
 
   env.db = db;
@@ -62,6 +63,7 @@ conditionEnvironment.getEnv = (data, db)=>{
   };
 
   env.curAverage = req=>{
+    console.log(env.averages);
     if(env.averages[req.period.toString()]){
       return env.averages[req.period.toString()][1];
     }else{
@@ -82,23 +84,44 @@ conditionEnvironment.getEnv = (data, db)=>{
     return ledger.checkPairClear(pair, env.db);
   };
 
-  env.fetchTick = req=>{
-    var pair, timestamp;
+  if(typeof vardb == "undefined"){
+    env.fetchTick = req=>{
+      var pair, timestamp;
 
-    if(!req.cur){
-      pair = req.pair;
-      timestamp = req.timestamp;
-    }else{
-      pair = env.pair;
-      timestamp = env.timestamp;
-    }
+      if(!req.cur){
+        pair = req.pair;
+        timestamp = req.timestamp;
+      }else{
+        pair = env.pair;
+        timestamp = env.timestamp;
+      }
 
-    return new Promise((fulfill, reject)=>{
-      env.db.collection("ticks").find({pair: pair, timestamp: timestamp}).toArray((err, ticks)=>{
-        fulfill(ticks[0]);
+      return new Promise((fulfill, reject)=>{
+        env.db.collection("ticks").find({pair: pair, timestamp: timestamp}).toArray((err, ticks)=>{
+          fulfill(ticks[0]);
+        });
       });
-    });
-  };
+    };
+  }else{
+    env.fetchTick = req=>{
+      return new Promise((f,r)=>{
+        if(req.cur){
+          reject(); //no ticks stored with this backtest method.
+        }else{
+          for(var i=0;i<vardb.prices[pair].length;i++){
+            if(vardb.prices[pair][i].timestamp == timestamp){
+              var fakeTick = vardb.prices[pair][i];
+              fakeTick.bid = fakeTick.price - (conf.public.estimatedSpread/2);
+              fakeTick.ask = fakeTick.price + (conf.public.estimatedSpread/2);
+
+              fulfill(fakeTick);
+              break;
+            }
+          }
+        }
+      });
+    }  
+  }
 
   return env;
 };

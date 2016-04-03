@@ -34,10 +34,10 @@ sma.averageMany = (pair, timestamp, periods, db, callback, finalCallback, storeC
 
 //pull prices from database and calculate average; then store.
 sma.average = (pair, timestamp, period, db, callback, storeCallback, pricesDb)=>{
-  var nostore = typeof storeCallback == "undefined";
+  var nostore = typeof storeCallback != "undefined"; //true if not storing ticks
 
   sma.calc(pair, timestamp-period, timestamp, conf.public.accurateSMA, db, average=>{
-    if(nostore){
+    if(!nostore){
       sma.store(pair, timestamp, period, average, db, ()=>callback(average, period));
     }else{
       storeCallback(pair, timestamp, period, average); //Callback will NOT be run!!
@@ -52,7 +52,7 @@ sma.calc = (pair, startTime, endTime, accurate, db, callback, pricesDb)=>{
       sma.rawCalc(prices, startTime, endTime, accurate, callback);
     });
   }else{
-    sma.rawCalc(pricesDb, startTime, endTime, accurate, callback);
+    sma.rawCalc(pricesDb[pair], startTime, endTime, accurate, callback);
   }
 };
 

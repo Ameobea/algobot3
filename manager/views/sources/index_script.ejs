@@ -17,6 +17,10 @@ $(document).ready(()=>{
     }else if(type == "pre-calculated"){
       var requestAddress = serverAddress + "api/backtest/start/precalced/" + $("#backtestStartPair").val();
       $.post(requestAddress, {startTime: $("#backtestStartTime").val(), endTime: $("#backtestEndTime").val()});
+    }else if(type == "no-store"){
+      console.log("pl");
+      var requestAddress = serverAddress + "api/backtest/start/nostore/" + $("#backtestStartPair").val();
+      $.post(requestAddress, {startTime: $("#backtestStartTime").val()});
     }
   });
 

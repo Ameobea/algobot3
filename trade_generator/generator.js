@@ -31,13 +31,13 @@ var positionsCache = [];
 // TODO: Close all positions in case of an actual emergency where we have open positions with broker of which we have no record
 
 // called each tick and updates strategies with newest information.
-tradeGen.eachTick = (data, db)=>{
+tradeGen.eachTick = (data, db, vardb)=>{
   return new Promise((fulfill, reject)=>{
     var pair = data.pair;
     var toProcess = [];
 
     strats.forEach(strat=>{
-      toProcess.push(strat.eachUpdate(data, db));
+      toProcess.push(strat.eachUpdate(data, db, vardb));
     });
 
     Promise.all(toProcess).then(()=>{

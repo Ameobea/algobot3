@@ -12,7 +12,7 @@ var publicConfig = exports;
 
 // "dev" for development, "prod" for live
 publicConfig.environment = "dev";
-publicConfig.dumpDbOnStart = false;
+publicConfig.dumpDbOnStart = true;
 
 publicConfig.managerServerIP = "new.ameobea.me";
 publicConfig.managerServerPort = 3002;
@@ -76,4 +76,10 @@ publicConfig.startingBalance = 32400;
 publicConfig.broker = "simulated";
 
 //normal, precalc, nostore
-publicConfig.backtestType = "nostore"
+publicConfig.backtestType = "nostore";
+
+//when tick storage is off, use this for opening positions during backtesting.
+publicConfig.estimatedSpread = .0003;
+
+//how many seconds of data to store internally during nostore backtests
+publicConfig.nostoreRetentionPeriod = 25000;
