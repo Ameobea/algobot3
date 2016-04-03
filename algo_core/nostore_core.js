@@ -1,12 +1,12 @@
 /*jslint node: true */
 "use strict";
 /*
-Algorithm Core Module
+No-store Algorithm Core Module
 
-This is the 'brain' of the bot.  It keeps track of all the other
-modules and determines what calculations are made.  It recieves a processed
-feed of data from live sources and makes requests to other modules and the
-database in order to determine trading conditions.
+This module is meant for backtesting strategies while cutting
+out the database entirely for the performance benefit.  Data is
+stored internally and only kept for as long as it is needed in the
+current backtest.  
 */
 var redis = require("redis");
 
@@ -24,6 +24,10 @@ var curAverages = {};
 var curMomentums = {};
 
 core.start = ()=>{
+  var smasDb = {};
+  var momentumDb = {};
+  var pricesDb = {};
+
   dbUtil.mongoConnect(db=>{
     var toMomentum = [];
     var toAverage = [];
@@ -39,6 +43,11 @@ core.start = ()=>{
 
       var pair = priceUpdate.pair;
       timestamp = priceUpdate.timestamp;
+
+      if(!pricesDb[pair]){
+        pricesDb[pair] = {};
+      }
+      pricesDb.push({timestamp: timestamp, price: priceUpdate.price});
 
       if(!curAverages[pair]){
         curAverages[pair] = {};
@@ -58,8 +67,8 @@ core.start = ()=>{
 
       var calced = [];
       new Promise((fulfill, reject)=>{
-        core.calcAverages(priceUpdate, toAverage, db, (average, averagePeriod)=>{
-          maCross.calc(pair, curAverages, averagePeriod, average, timestamp, false, (newCrosses, crossStatuses)=>{
+        core.calcAverages(priceUpdate, toAverage, db, smasDb, pricesDb, (average, averagePeriod)=>{
+          maCross.calc(pair, curAverages, averagePeriod, average, timestamp, db, (newCrosses, crossStatuses)=>{
             core.storeLocalAverages(pair, averagePeriod, timestamp, average);
 
             calced.push({period: averagePeriod, average: average});
@@ -81,7 +90,7 @@ core.start = ()=>{
               }
             });
 
-            core.calcMomentums(priceUpdate, parseInt(averagePeriod), toMomentum, db, (momentum, momentumPeriod)=>{
+            core.calcMomentums(priceUpdate, parseInt(averagePeriod), toMomentum, db, momentumDb, smasDb, (momentum, momentumPeriod)=>{
               core.storeLocalMomentums(pair, averagePeriod, momentumPeriod, timestamp, momentum);
             }, ()=>{
               fulfill([pair, crossStatuses]);
@@ -98,18 +107,31 @@ core.start = ()=>{
 };
 
 //Returns the period of the average that was calculated
-core.calcAverages = (priceUpdate, averagePeriods, db, callback)=>{
+core.calcAverages = (priceUpdate, averagePeriods, db, smasDb, pricesDb, callback)=>{
   //TODO: Don't do accurate calculations for averages where the period is large enough to make the added accuracy negligable
-  sma.averageMany(priceUpdate.pair, priceUpdate.timestamp, averagePeriods, db, (average, pd)=>{
-    callback(average, pd);
-  });
+  sma.averageMany(priceUpdate.pair, priceUpdate.timestamp, averagePeriods, db, ()=>{}, (pair, timestamp, period, average)=>{
+    if(!smasDb[pair]){
+      smasDb[pair] = {};
+    }
+
+    smasDb[pair].push({timestamp: timestamp, period: period, value: average});
+    callback(average, period);
+  }, smasDb);
 };
 
 
-core.calcMomentums = (priceUpdate, averagePeriod, momentumPeriods, db, callback, finalCallback)=>{
-  momentumCalc.calcMany(priceUpdate.pair, priceUpdate.timestamp, averagePeriod, momentumPeriods, db, (momentumPeriod, momentum)=>{
-    callback(momentum, momentumPeriod);
-  }, finalCallback);
+core.calcMomentums = (priceUpdate, averagePeriod, momentumPeriods, db, momentumDb, smasDb, callback, finalCallback)=>{
+  momentumCalc.calcMany(priceUpdate.pair, priceUpdate.timestamp, averagePeriod, momentumPeriods, db, ()=>{}, finalCallback, (pair, averagePeriod, momentumPeriod, endTime, momentumValue)=>{
+    if(!momentumDb[pair]){
+      momentumDb[pair] = {};
+    }
+    if(!momentumDb[pair][averagePeriod.toString()]){
+      momentumDb[pair][averagePeriod.toString()] = {};
+    }
+
+    momentumDb[pair][averagePeriod.toString()][momentumPeriod.toString()].push({timestamp: endTime, momentum: momentumValue});
+    callback(momentumValue, momentumPeriod);
+  }, smasDb);
 };
 
 core.storeLocalAverages = (pair_, averagePeriod_, timestamp_, average_)=>{

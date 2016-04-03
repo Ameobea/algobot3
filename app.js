@@ -4,8 +4,9 @@ var manager = require("./manager/manager");
 var conf = require("./conf/conf");
 var tickGenerator = require("./tick_generator/tick_generator");
 var backtest = require("./backtest/backtest");
-var precalcCore = require("./algo_core/precalc_core");
-var core = require("./algo_core/core");
+
+var coreString = conf.public.backtestType;
+var core = require(`./algo_core/${backtestType}`);
 var dbUtils = require("./db_utils/utils");
 var ledger = require("./trade_generator/ledger");
 

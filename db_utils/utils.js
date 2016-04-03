@@ -110,3 +110,29 @@ dbUtil.fetchData = (pair, type, props, range, callback)=>{
     });
   });
 };
+
+// moves data from a collection with a timestamp lookback
+// seconds or more older than timestamp to a different
+// collection.  Calls back number of elements moved.
+dbUtil.transferOld = (fromCollectionName, toCollectionName, timestamp, lookback, db)=>{
+  return new Promise((f,r)=>{
+    var fromCollection = db.collection(collectionName);
+    var toCollection = db.collection(toCollection);
+
+    var batchInsert = fromCollection.initializeUnorderedBulkOp();
+
+    fromCollection.find({timestamp: {$lt: timestamp-lookback}}).forEach(doc=>{
+      batchInsert.insert(doc);
+    });
+
+    batchInsert.execute((err,res)=>{
+      if(err){
+        console.log(err);
+      }else{
+        fromCollection.deleteMany({timestamp: {$lt: timestmap-lookback}}, (res, con, count)=>{
+          f(count);
+        });
+      }
+    });
+  });
+}

@@ -16,39 +16,50 @@ var sma = exports;
 
 //calculates multiple averages at different periods from one end time
 //callback is called for each individual average calculated
-sma.averageMany = (pair, timestamp, periods, db, callback, finalCallback)=>{
+sma.averageMany = (pair, timestamp, periods, db, callback, finalCallback, storeCallback, pricesDb)=>{
   var calced = [];
   var tasks = periods.map(x=>{
     return new Promise((fulfill, reject)=>{
       sma.average(pair, timestamp, x, db, (average, averagePeriod)=>{
         calced.push({period: averagePeriod, average: average});
         fulfill(callback(average, averagePeriod));
-      });
+      }, storeCallback, pricesDb);
     });
   });
+
   Promise.all(tasks).then(calced=>{
     finalCallback(calced);
   });
-}
+};
 
 //pull prices from database and calculate average; then store.
-sma.average = (pair, timestamp, period, db, callback)=>{
+sma.average = (pair, timestamp, period, db, callback, storeCallback, pricesDb)=>{
+  var nostore = typeof storeCallback == "undefined";
+
   sma.calc(pair, timestamp-period, timestamp, conf.public.accurateSMA, db, average=>{
-    sma.store(pair, timestamp, period, average, db, ()=>callback(average, period));
-  });
+    if(nostore){
+      sma.store(pair, timestamp, period, average, db, ()=>callback(average, period));
+    }else{
+      storeCallback(pair, timestamp, period, average); //Callback will NOT be run!!
+    }
+  }, pricesDb);
 };
 
 //pulls prices from database and calculates average
-sma.calc = (pair, startTime, endTime, accurate, db, callback)=>{
-  priceUtils.getPricesInRange(pair, startTime, endTime, conf.public.accurateSMA, db, prices=>{
-    sma.rawCalc(prices, startTime, endTime, accurate, callback);
-  });
+sma.calc = (pair, startTime, endTime, accurate, db, callback, pricesDb)=>{
+  if(typeof pricesDb == "undefined"){
+    priceUtils.getPricesInRange(pair, startTime, endTime, conf.public.accurateSMA, db, prices=>{
+      sma.rawCalc(prices, startTime, endTime, accurate, callback);
+    });
+  }else{
+    sma.rawCalc(pricesDb, startTime, endTime, accurate, callback);
+  }
 };
 
 //calculates average on array of prices
 sma.rawCalc = (prices, startTime, endTime, accurate, callback)=>{
-  if((prices.length > 0 && accurate === false) || (prices.length > 1 && accurate === true)){
-    if((prices.length > 1 && accurate === false) || (prices.length > 2 && accurate === true)){
+  if((prices.length > 0 && !accurate) || (prices.length > 1 && accurate)){
+    if((prices.length > 1 && !accurate) || (prices.length > 2 && accurate)){
       var total = 0;
       if(accurate){
         total += prices[0].price * (prices[1].timestamp-startTime);

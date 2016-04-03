@@ -47,8 +47,10 @@ maCross.calc = (pair, lastAverages, newAveragePeriod, newAverage, timestamp, db,
 }
 
 maCross.storeCross = (pair, timestamp, period, compPeriod, direction, db)=>{
-  var crosses = db.collection("smaCrosses");
-  var doc = {pair: pair, timestamp: timestamp, period: period, compPeriod: compPeriod, direction: direction};
-  
-  crosses.insertOne(doc, (res)=>{});
+  if(db){
+    var crosses = db.collection("smaCrosses");
+    var doc = {pair: pair, timestamp: timestamp, period: period, compPeriod: compPeriod, direction: direction};
+    
+    crosses.insertOne(doc, (res)=>{});
+  }
 }

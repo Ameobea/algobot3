@@ -74,3 +74,6 @@ publicConfig.startingBalance = 32400;
 
 //The name of the file in trade_generator/brokers that will be used as broker API
 publicConfig.broker = "simulated";
+
+//normal, precalc, nostore
+publicConfig.backtestType = "nostore"
