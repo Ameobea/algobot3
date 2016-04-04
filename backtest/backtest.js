@@ -8,6 +8,9 @@ out of the flatfile tick data storage files in conf.public.tickDataDirectory
 and send them to the Tick Generator.
 */
 
+// TODO: Merge all of the shared code for loading backtest
+// data into a single function.  You owe it yourself
+// to prune out some of those copy-pasted lines.
 var fs = require('fs');
 var conf = require("../conf/conf");
 var redis = require("redis");

@@ -111,6 +111,9 @@ dbUtil.fetchData = (pair, type, props, range, callback)=>{
   });
 };
 
+// TODO: Integrate this into live/fast backtests so that it will actually be
+// used during the bot's execution.
+
 // moves data from a collection with a timestamp lookback
 // seconds or more older than timestamp to a different
 // collection.  Calls back number of elements moved.
@@ -135,4 +138,14 @@ dbUtil.transferOld = (fromCollectionName, toCollectionName, timestamp, lookback,
       }
     });
   });
-}
+};
+
+dbUtil.getInstances = ()=>{
+  return new Promise((f,r)=>{
+    dbUtil.mongoConnect(db=>{
+      db.collection("instances").find().toArray((err,res)=>{
+        f(res);
+      });
+    });
+  });
+};

@@ -15,6 +15,9 @@ Promise.onPossiblyUnhandledRejection(function(error){
     throw error;
 });
 
+// TODO: If you're very very bored or unable to deal with this current mess,
+// This file and the places it is used are in need of major refacroting.
+
 //callback is called for each individual momentum calculated
 momentum.calcMany = (pair, endTime, averagePeriod, momentumPeriods, db, callback, finalCallback, storeCb, smasDb)=>{
   var tasks = momentumPeriods.map(x=>{

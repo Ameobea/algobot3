@@ -57,4 +57,10 @@ router.get("/utils/dbRestore/:dbRestoreId", (req, res, next)=>{
   });
 });
 
+router.get("/instances", (req, res, next)=>{
+  dbUtils.getInstances().then(res=>{
+    res.send(JSON.stringify(instances));
+  });
+});
+
 module.exports = router;

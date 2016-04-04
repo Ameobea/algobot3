@@ -8,6 +8,9 @@ be though of a default options and should be committed to the repository.
 */
 
 //TODO: Make checks on bot startup to verify config is correct
+
+// TODO: Clearn up this config and split it into logical modules
+// that correspond to the parts of the bot that it configures.
 var publicConfig = exports;
 
 // "dev" for development, "prod" for live

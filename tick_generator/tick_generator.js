@@ -25,7 +25,7 @@ var redisPublishClient = redis.createClient();
 var prevTick = {}; //last tick from previous average period
 var storeQueue = {}; //stores ticks waiting to be processed&stored
 
-tickGenerator.listen = ()=>{
+tickGenerator.listen = pairs=>{
   dbUtil.mongoConnect(db=>{
 
     redisListenClient.subscribe("ticks");
@@ -34,7 +34,9 @@ tickGenerator.listen = ()=>{
     redisListenClient.on("message", (channel, message)=>{
       tick = JSON.parse(message);
 
-      tickGenerator.processTick(tick, db);
+      if(pairs || pairs.indexOf(tick.pair) != -1){
+        tickGenerator.processTick(tick, db);
+      }
     });
   });
 };
@@ -76,6 +78,7 @@ tickGenerator.calcPeriodAverage = (ticks, curTime, redisClient, db, callback)=>{
         if(conf.public.backtestType != "nostore"){
           redisClient.publish("prices", JSON.stringify(publishObject));
         }else{
+          console.log("Sending tick to core manually");
           nostoreCore.processUpdate(publishObject, db).then(()=>{
             backtest.nostoreNext();
           }, ()=>{ //didn't process fully
