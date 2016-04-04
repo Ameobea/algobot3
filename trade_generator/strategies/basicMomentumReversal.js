@@ -111,7 +111,6 @@ strat.eachUpdate = (data, db, vardb)=>{
                 f(this);
               }else{
                 if(state.goalNegative == (momentum > 0) && state.goalDirection == momentum > state.lastMomentum){
-                  console.log(state.goalNegative, state.goalDirection, state.lastMomentum);
                   closeSelf().then(()=>r());//reject only if the position is closed during this condition
                 }else{
                   updateState(momentum);

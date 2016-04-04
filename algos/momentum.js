@@ -10,6 +10,11 @@ var conf = require("../conf/conf");
 
 var momentum = exports;
 
+var Promise = require("bluebird");
+Promise.onPossiblyUnhandledRejection(function(error){
+    throw error;
+});
+
 //callback is called for each individual momentum calculated
 momentum.calcMany = (pair, endTime, averagePeriod, momentumPeriods, db, callback, finalCallback, storeCb, smasDb)=>{
   var tasks = momentumPeriods.map(x=>{
@@ -20,7 +25,13 @@ momentum.calcMany = (pair, endTime, averagePeriod, momentumPeriods, db, callback
         }else{
           reject();
         }
-      }, storeCb, smasDb);
+      }, (pair, averagePeriod, momentumPeriod, endTime, momentumValue)=>{
+        if(momentumValue){
+          fulfill(storeCb(pair, averagePeriod, momentumPeriod, endTime, momentumValue));
+        }else{
+          reject(false);
+        }
+      }, smasDb);
     });
   });
 
@@ -42,7 +53,9 @@ momentum.momentum = (pair, endTime, averagePeriod, momentumPeriod, db, callback,
         storeCb(pair, averagePeriod, momentumPeriod, endTime, momentumValue);
       }
     }else{//no momentum able to be calculaed
-      callback(false);
+      if(nostore){
+        storeCb(false);
+      }
     }
   }, smasDb);
 };

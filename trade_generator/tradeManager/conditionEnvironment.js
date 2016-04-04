@@ -105,22 +105,22 @@ conditionEnvironment.getEnv = (data, db, vardb)=>{
   }else{
     env.fetchTick = req=>{
       return new Promise((f,r)=>{
-        if(req.cur){
-          reject(); //no ticks stored with this backtest method.
+        if(!req.cur){
+          r("Requested non-current tick during no-calc backtest"); //no ticks stored with this backtest method.
         }else{
-          for(var i=0;i<vardb.prices[pair].length;i++){
-            if(vardb.prices[pair][i].timestamp == timestamp){
-              var fakeTick = vardb.prices[pair][i];
+          for(var i=0;i<vardb.prices[env.pair].length;i++){
+            if(vardb.prices[env.pair][i].timestamp == env.timestamp){
+              var fakeTick = vardb.prices[env.pair][i];
               fakeTick.bid = fakeTick.price - (conf.public.estimatedSpread/2);
               fakeTick.ask = fakeTick.price + (conf.public.estimatedSpread/2);
 
-              fulfill(fakeTick);
+              f(fakeTick);
               break;
             }
           }
         }
       });
-    }  
+    };
   }
 
   return env;

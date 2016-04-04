@@ -22,13 +22,13 @@ Conditions for each of the open positions are evaluated
 and actions are taken depending on their results.
 See trademanagers.md
 */
-manager.manage = (position, data, evaluated, db)=>{
+manager.manage = (position, data, evaluated, db, vardb)=>{
   return new Promise((fulfill, reject)=>{
     if(!evaluated){
       evaluated = [];
     }
 
-    var env = condEnv.getEnv(data, db);
+    var env = condEnv.getEnv(data, db, vardb);
     var actions = condEnv.getActions(env, position, broker);
 
     manager.iterConditions(position, env, actions, [], position=>{

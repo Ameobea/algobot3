@@ -48,7 +48,7 @@ tradeGen.eachTick = (data, db, vardb)=>{
         }).then(()=>{
           toProcess = [];
           positionsCache.forEach(position=>{
-            toProcess.push(manager.manage(position, data, [], db));
+            toProcess.push(manager.manage(position, data, [], db, vardb));
           });
 
           Promise.all(toProcess).then(newPositions=>{

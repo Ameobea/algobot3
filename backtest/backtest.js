@@ -276,7 +276,7 @@ backtest.nostore = (pair, startTime)=>{
         return 'Simulation started successfully for symbol ' + pair;
       });
     }else{
-      console.log("Backtest already running for symbol " + pair);
+      console.log("A Backtest already running for symbol " + pair);
     }
   });
 }
@@ -288,24 +288,12 @@ backtest.nostoreNext = ()=>{
 backtest.nostoreSend = (chunk, chunkResult, curIndex, diff, oldTime, pair, client)=>{
   if(curIndex >= chunkResult.length){
     backtest.stopOne(pair, ()=>{
-      backtest.fast(pair, oldTime + 1, diff);
+      backtest.nostore(pair, oldTime + 1, diff);
     });
     return;
   }
   if(curIndex % conf.public.fastBacktestCheckInterval === 0){ //if this is a check interval
     backtest.checkIfRunning(pair, (running)=>{
-      var load = os.loadavg()[0];
-
-      if(load > .8){
-        diff = parseInt(diff) + 3;
-        diff = diff.toString();
-        console.log("diff increased to " + diff);
-      }
-      if(load < .7 && parseInt(diff) > 1){ //TODO: seperate for nostore and fast backtests
-        diff = parseInt(diff) - 1;
-        diff = diff.toString();
-        console.log("diff decreased to " + diff);
-      }
 
       if(!running){ //and it's been cancelled
         console.log(`Backtest for pair ${pair} stopped.`);
@@ -313,7 +301,6 @@ backtest.nostoreSend = (chunk, chunkResult, curIndex, diff, oldTime, pair, clien
       }else{ //it's a check interval and hasn't been cancelled
         backtest.nostoreState = [chunk, chunkResult, curIndex + 1, diff, chunkResult[curIndex][0], pair, client];
 
-        console.log("Sending tick to tickgen.");
         tickgen.processTick({real: false,
           pair: pair,
           timestamp: parseFloat(chunkResult[curIndex][0]),
@@ -325,7 +312,6 @@ backtest.nostoreSend = (chunk, chunkResult, curIndex, diff, oldTime, pair, clien
   }else{ //it's not a check interval
     backtest.nostoreState = [chunk, chunkResult, curIndex + 1, diff, chunkResult[curIndex][0], pair, client];
 
-    console.log("Sending tick to tickgen.");
     tickgen.processTick({real: false,
       pair: pair,
       timestamp:

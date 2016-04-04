@@ -8,15 +8,17 @@ out the database entirely for the performance benefit.  Data is
 stored internally and only kept for as long as it is needed in the
 current backtest.  
 */
-var redis = require("redis");
-
 var conf = require("../conf/conf");
-var dbUtil = require("../db_utils/utils");
 var sma = require("../algos/average/sma");
 var momentumCalc = require("../algos/momentum");
 var maCross = require("../algos/maCross");
 var maDist = require("../algos/maDistance");
 var tradeGen = require("../trade_generator/generator");
+
+var Promise = require("bluebird");
+Promise.onPossiblyUnhandledRejection(function(error){
+    throw error;
+});
 
 var core = exports;
 
@@ -72,13 +74,12 @@ core.pruneDbs = timestamp=>{
       }
     }
   });
-}
+};
 
 core.processUpdate = (priceUpdate, db)=>{
   timestamp = priceUpdate.timestamp;
 
   core.pruneDbs(timestamp);
-  console.log("done pruning dbs.");
 
   return new Promise((f,r)=>{
     var pair = priceUpdate.pair;
@@ -106,7 +107,6 @@ core.processUpdate = (priceUpdate, db)=>{
 
     var calced = [];
     var a = new Promise((fulfill, reject)=>{
-      console.log("inside a");
       core.calcAverages(priceUpdate, toAverage, db, smasDb, pricesDb, (average, averagePeriod)=>{
         maCross.calc(pair, curAverages, averagePeriod, average, timestamp, db, (newCrosses, crossStatuses)=>{
           core.storeLocalAverages(pair, averagePeriod, timestamp, average);
@@ -131,38 +131,33 @@ core.processUpdate = (priceUpdate, db)=>{
             }
           });
 
-          console.log("about to calc momentums");
           core.calcMomentums(priceUpdate, parseInt(averagePeriod), toMomentum, db, momentumDb, smasDb, (momentum, momentumPeriod)=>{
             if(momentum && momentumPeriod){
-              console.log("stored local momentums");
               core.storeLocalMomentums(pair, averagePeriod, momentumPeriod, timestamp, momentum);
+              return true;
             }
           }, status=>{ //undefined == no problem
-            console.log("finalcallback");
             if(status){
-              console.log("ready to check for trade signal");
               fulfill([pair, crossStatuses, {prices: pricesDb, momentum: momentumDb, smas: smasDb, maDist: madistDb}]);
             }else{
-              console.log("not enough data to make a successful trade signal");
               reject(); //not enough data to make a successful trade signal
             }
           });
         });
       });
-    })
+    });
 
     a.then(res=>{//after all averages + momentums are calculated
       var data = {pair: res[0], timestamp: timestamp, momentums: curMomentums[pair],
         averages: curAverages[pair], crosses: res[1]};
       tradeGen.eachTick(data, db, res[2]).then(()=>{
-        console.log("fulfilling");
         r(); //ready for next tick; indicate for it to be sent.
       });
     }, ()=>{
       r(); //momentums fucked up but still ready for next tick
     });
   });
-}
+};
 
 //Returns the period of the average that was calculated
 core.calcAverages = (priceUpdate, averagePeriods, db, smasDb, pricesDb, callback)=>{
@@ -183,18 +178,22 @@ core.calcAverages = (priceUpdate, averagePeriods, db, smasDb, pricesDb, callback
 
 core.calcMomentums = (priceUpdate, averagePeriod, momentumPeriods, db, momentumDb, smasDb, callback, finalCallback)=>{
   momentumCalc.calcMany(priceUpdate.pair, priceUpdate.timestamp, averagePeriod, momentumPeriods, db, ()=>{}, finalCallback, (pair, averagePeriod, momentumPeriod, endTime, momentumValue)=>{
-    if(!momentumDb[pair]){
-      momentumDb[pair] = {};
-    }
-    if(!momentumDb[pair][averagePeriod.toString()]){
-      momentumDb[pair][averagePeriod.toString()] = {};
-    }
-    if(!momentumDb[pair][averagePeriod.toString()][momentumPeriod.toString()]){
-      momentumDb[pair][averagePeriod.toString()][momentumPeriod.toString()] = [];
-    }
+    if(averagePeriod && momentumPeriod){
+      if(!momentumDb[pair]){
+        momentumDb[pair] = {};
+      }
+      if(!momentumDb[pair][averagePeriod.toString()]){
+        momentumDb[pair][averagePeriod.toString()] = {};
+      }
+      if(!momentumDb[pair][averagePeriod.toString()][momentumPeriod.toString()]){
+        momentumDb[pair][averagePeriod.toString()][momentumPeriod.toString()] = [];
+      }
 
-    momentumDb[pair][averagePeriod.toString()][momentumPeriod.toString()].push({timestamp: endTime, momentum: momentumValue});
-    callback(momentumValue, momentumPeriod);
+      momentumDb[pair][averagePeriod.toString()][momentumPeriod.toString()].push({timestamp: endTime, momentum: momentumValue});
+      callback(momentumValue, momentumPeriod);
+    }else{
+      callback(false);
+    }
   }, smasDb);
 };
 
