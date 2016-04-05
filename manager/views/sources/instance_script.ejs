@@ -1,3 +1,6 @@
+"use strict";
+/*jslint browser: true*/ /*global $*/
+
 $(document).ready(()=>{
   //set up button listeners
 
@@ -6,5 +9,38 @@ $(document).ready(()=>{
 });
 
 var loadInstances = ()=>{
-  //$.get() TODO
-}
+  $.get("./api/instances", data=>{
+    var parsed = JSON.parse(data);
+    var table = "<table><tr><th>Kill</th><th>Type</th><th>Data</th></tr>";
+
+    $.each(parsed.instances, (index, elem)=>{
+      
+      if(elem.type == "manager"){
+        table += (`<tr><td></td><td>Manager</td><td>Port: ${elem.port}</td></tr>`);
+      }
+    });
+
+    table += "</table>";
+
+    $("#running-instances").html(table);
+
+    $.each(parsed.backtests, (index, elem)=>{
+
+    });
+  });
+};
+
+var getKillButton = id=>{
+  return `<input type="button" onclick="killConfirm(${id})">`;
+};
+
+var killConfirm = id=>{
+  var res = window.confirm("Are you sure you want to kill this instance?");
+  if(res){
+    killInstance(id);
+  }
+};
+
+var killInstance = id=>{
+  //TODO: Kill instance
+};

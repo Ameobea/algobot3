@@ -60,6 +60,7 @@ dbUtil.load = (dumpName, callback)=>{
 dbUtil.init = (callback)=>{
   dbUtil.mongoConnect((db)=>{
     dbUtil.createIndexes(db, ()=>{
+      db.close();
       callback();
     });
   });
@@ -102,6 +103,7 @@ dbUtil.fetchData = (pair, type, props, range, callback)=>{
           props.timestamp = {$gte: newestDoc[0].timestamp - range};
           collection.find(props).toArray((err, res)=>{
             callback(res);
+            db.close();
           });
         }else{
           callback([]);
@@ -143,8 +145,11 @@ dbUtil.transferOld = (fromCollectionName, toCollectionName, timestamp, lookback,
 dbUtil.getInstances = ()=>{
   return new Promise((f,r)=>{
     dbUtil.mongoConnect(db=>{
-      db.collection("instances").find().toArray((err,res)=>{
-        f(res);
+      db.collection("instances").find().toArray((err, instances)=>{
+        db.collection("backtestFlags").find().toArray((err, flags)=>{
+          f({backtests: flags, instances: instances});
+          db.close();
+        });
       });
     });
   });

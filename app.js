@@ -1,3 +1,5 @@
+//"use strict";
+/*global: gRedis*/
 /*
 Algobot 3
 
@@ -15,7 +17,7 @@ var backtest = require("./backtest/backtest");
 var coreString = conf.public.backtestType;
 var tackon = "_core";
 if(coreString == "normal"){
-  coreString == "core";
+  coreString = "core";
   tackon = "";
 }
 var core = require(`./algo_core/${coreString}${tackon}`);
@@ -26,12 +28,11 @@ var ledger = require("./trade_generator/ledger");
 /*
 Arguments:
 
---port: 3002 | manager server port
---nomanager | start without manager server
---onlymanager -m | start only the manager server.
---listen/-l AUDUSD,USDCAD,EURUSD | only listen for updates to the following list of pairs.
+--port: 3002 | manager server port (defaults to value in conf.public)
+--nomanager | start without manager server (default false)
+--onlymanager -m | start only the manager server. (default false)
+--listen/-l AUDUSD,USDCAD,EURUSD | only listen for updates to the following list of pairs. (default all pairs)
 */
-console.log(argv);
 
 var startManager = ()=>{
   if(argv.nomanager){}else{
@@ -42,7 +43,7 @@ var startManager = ()=>{
 
     manager.start(port);
   }
-}
+};
 
 if(argv.onlymanager || argv.m){
   console.log("Starting only manager.");
@@ -83,4 +84,4 @@ if(argv.onlymanager || argv.m){
       dbUtils.flush(()=>{});
     }
   });
-}
+};

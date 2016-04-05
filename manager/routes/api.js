@@ -58,9 +58,13 @@ router.get("/utils/dbRestore/:dbRestoreId", (req, res, next)=>{
 });
 
 router.get("/instances", (req, res, next)=>{
-  dbUtils.getInstances().then(res=>{
-    res.send(JSON.stringify(instances));
-  });
+  dbUtils.getInstances().then(data=>{
+    res.send(JSON.stringify(data));
+  }, (err)=>{console.log(err);});
+});
+
+router.get("/ping", (req, res, next)=>{
+  res.send("pong");
 });
 
 module.exports = router;
