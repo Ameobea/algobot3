@@ -2,6 +2,9 @@
 
 var express = require("express");
 var router = express.Router();
+var http = require("http");
+
+var conf = require("../../conf/conf");
 var backtest = require("../../backtest/backtest");
 var dbUtils = require("../../db_utils/utils");
 
@@ -63,8 +66,26 @@ router.get("/instances", (req, res, next)=>{
   }, (err)=>{console.log(err);});
 });
 
+router.get("/instances/kill/:type/:data", (req, res, next)=>{
+  if(req.params.type == "manager"){
+    http.get({hostname: conf.private.managerIp, port: parseInt(req.params.data), path: "/api/kill"}, resp=>{
+      resp.on("data", data=>{
+        res.send(data);
+      });
+    });
+  }
+});
+
 router.get("/ping", (req, res, next)=>{
   res.send("pong");
+});
+
+router.get("/kill", (req, res, next)=>{
+  res.send(JSON.stringify({success: true}));
+  console.log("Message to kill manager recieved.  Suiciding.");
+  setTimeout(()=>{
+    process.exit(0);
+  }, 1000);
 });
 
 module.exports = router;

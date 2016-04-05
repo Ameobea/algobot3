@@ -9,6 +9,10 @@ $(document).ready(()=>{
 });
 
 var loadInstances = ()=>{
+  update();
+};
+
+var update = ()=>{
   $.get("./api/instances", data=>{
     var parsed = JSON.parse(data);
     var table = "<table><tr><th>Kill</th><th>Type</th><th>Data</th></tr>";
@@ -16,7 +20,7 @@ var loadInstances = ()=>{
     $.each(parsed.instances, (index, elem)=>{
       
       if(elem.type == "manager"){
-        table += (`<tr><td></td><td>Manager</td><td>Port: ${elem.port}</td></tr>`);
+        table += (`<tr><td>${getKillButton(elem.type, elem.port)}</td><td>Manager</td><td>Port: ${elem.port}</td></tr>`);
       }
     });
 
@@ -27,20 +31,31 @@ var loadInstances = ()=>{
     $.each(parsed.backtests, (index, elem)=>{
 
     });
-  });
+  }).fail(err=>{
+    console.log("Unable to connect to ")
+  })
+}
+
+var getKillButton = (type, data)=>{
+  return `<input type="button" onclick="killConfirm('${type}', '${data}')" value="X">`;
 };
 
-var getKillButton = id=>{
-  return `<input type="button" onclick="killConfirm(${id})">`;
-};
-
-var killConfirm = id=>{
+var killConfirm = (type, data)=>{
   var res = window.confirm("Are you sure you want to kill this instance?");
   if(res){
-    killInstance(id);
+    killInstance(type, data);
   }
 };
 
-var killInstance = id=>{
-  //TODO: Kill instance
+var killInstance = (type, data)=>{
+  $.get(`./api/instances/kill/${type}/${data}`, res=>{
+    var parsed = JSON.parse(res);
+
+    if(parsed.success){
+      $("#statusbar").html("<p>Successfully killed instance.</p>");
+      update();
+    }
+  }).fail(err=>{
+    $("#statusbar").html(`<p>Failed to kill instance: ${err.status}</p>`);
+  })
 };
