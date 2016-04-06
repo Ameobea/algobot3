@@ -7,6 +7,7 @@ var http = require("http");
 var conf = require("../../conf/conf");
 var backtest = require("../../backtest/backtest");
 var dbUtils = require("../../db_utils/utils");
+var spawner = require("../../utils/instance_spawner");
 
 //URL: [ip]/api/backtest/[fast/live]/[pair]
 //POST params: pair, startTime, [interval]
@@ -71,6 +72,17 @@ router.get("/instances/kill/:type/:data", (req, res, next)=>{
     http.get({hostname: conf.private.managerIp, port: parseInt(req.params.data), path: "/api/kill"}, resp=>{
       resp.on("data", data=>{
         res.send(data);
+      });
+    });
+  }
+});
+
+//:data should be a string in the following format: "EURUSD,USDCAD,USDJPY"
+router.get("/instances/spawn/:type/:data", (req, res, next)=>{
+  if(req.params.type == "tickParser"){
+    spawner.getOpenPort().then(port=>{ //creates placeholder element in mongo "instances" collection
+      spawner.spawnTickParser(port, req.params.pairs).then(result=>{
+        res.send(JSON.stringify(result)); //TODO: Debug this
       });
     });
   }

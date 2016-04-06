@@ -86,3 +86,6 @@ publicConfig.estimatedSpread = .0003;
 
 //how many seconds of data to store internally during nostore backtests
 publicConfig.nostoreRetentionPeriod = 25000;
+
+//In format [low,high], the range of avaliable ports for the bot's instances.
+publicConfig.instancePortRange = [3000,4000];
