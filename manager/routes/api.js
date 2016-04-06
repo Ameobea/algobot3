@@ -3,6 +3,7 @@
 var express = require("express");
 var router = express.Router();
 var http = require("http");
+var redis = require("redis");
 
 var conf = require("../../conf/conf");
 var backtest = require("../../backtest/backtest");
@@ -74,16 +75,30 @@ router.get("/instances/kill/:type/:data", (req, res, next)=>{
         res.send(data);
       });
     });
+  }else if(req.params.type == "tickParser"){
+    var redisPubClient = redis.createClient();
+    var redisSubClient = redis.createClient();
+
+    redisSubClient.subscribe("instanceCommands");
+    redisPubClient.publish(JSON.stringify({command: "kill", id: data}));
+
+    redisSubClient.on("message", (channel, message)=>{
+      var parsed = JSON.parse(message);
+
+      if(parsed.status == "dying" && parsed.id == id){
+        f();
+      }
+    });
   }
 });
 
 //:data should be a string in the following format: "EURUSD,USDCAD,USDJPY"
 router.get("/instances/spawn/:type/:data", (req, res, next)=>{
   if(req.params.type == "tickParser"){
-    spawner.getOpenPort().then(port=>{ //creates placeholder element in mongo "instances" collection
-      spawner.spawnTickParser(port, req.params.pairs).then(result=>{
-        res.send(JSON.stringify(result)); //TODO: Debug this
-      });
+    var pairs = req.params.data.split(",");
+
+    spawner.spawnTickParser(pairs).then(result=>{
+      res.send(JSON.stringify(result)); //TODO: Debug this
     });
   }
 });

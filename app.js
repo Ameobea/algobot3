@@ -8,6 +8,7 @@ github repository's readmes for information about how to run.
 */
 var redis = require("redis");
 var argv = require("minimist")(process.argv.slice(2));
+var uuid64 = require("uuid64");
 
 var manager = require("./manager/manager");
 var conf = require("./conf/conf");
@@ -49,12 +50,15 @@ if(argv.onlymanager || argv.m){
   console.log("Starting only manager.");
   startManager();
 }else{
-  dbUtils.init(()=>{
+  dbUtils.init(db=>{
+    console.log("Starting tick processor...");
     gRedis = redis.createClient(); //global redis client
 
     dbUtils.indexIterator(false, conf.public.mongoIndexRebuildPeriod);
 
-    startManager();
+    if(!argv.nomanager){
+      startManager();
+    }
 
     if(argv.listen || argv.l){
       if(argv.listen){
@@ -65,10 +69,13 @@ if(argv.onlymanager || argv.m){
         var pairs = argv.l;
       }
 
-      pairs = pairs.split(",");
+      if(pairs != "ALL"){
+        pairs = pairs.split(",");
+      }
+      
       tickGenerator.listen(pairs);
     }else{
-      tickGenerator.listen();
+      tickGenerator.listen("ALL");
     }
 
     core.start();
@@ -83,5 +90,48 @@ if(argv.onlymanager || argv.m){
       backtest.clearFlags(()=>{});
       dbUtils.flush(()=>{});
     }
+  });
+};
+
+//pairs is an array of pairs to listen for.
+//fulfills with the id of the newly spawned parser if able to
+//rejects if one of the pairs is already listened to.
+var parserSpawn = (pairs, db)=>{
+  return new Promise((f,r)=>{
+    db.collection("instances").find({type: "tickParser"}).toArray().then(instances=>{
+      //TODO: Query to see if the instances are actually alive or not.
+
+      var collisions = instances.filter(elem=>{
+        var collision = false;
+
+        pairs.forEach(pair=>{
+          if(elem.pairs.indexOf(pair) != -1){
+            collision = true;
+          }
+        });
+
+        return collision;
+      });
+
+      if(collisions.length != 0){
+        r();
+      }else{
+        db.collection.instances.insertOne({type: "tickParser", id: uuid64(), pairs: pairs}, (err, res)=>{
+          f(id);
+        });
+      }
+    });
+  });
+};
+
+//Queries a tick parser via redis and fulfills true if it responds within 1 second
+//otherwise fulfills false after 1 second.
+var parserVerify = id=>{
+  return new Promise((f,r)=>{
+    var pub = redis.createClient();
+    var sub = redis.createClient();
+    sub.subscribe("instanceCommands");
+
+    
   });
 };

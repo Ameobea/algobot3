@@ -59,3 +59,9 @@ var killInstance = (type, data)=>{
     $("#statusbar").html(`<p>Failed to kill instance: ${err.status}</p>`);
   })
 };
+
+var spawnInstance = (type, data)=>{
+  $.get(`./api/instances/spawn/${type}/${data}`, res=>{
+    $("#statusbar").html(res);
+  });
+}

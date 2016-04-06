@@ -25,18 +25,28 @@ var redisPublishClient = redis.createClient();
 var prevTick = {}; //last tick from previous average period
 var storeQueue = {}; //stores ticks waiting to be processed&stored
 
-tickGenerator.listen = pairs=>{
+tickGenerator.listen = (pairs, id)=>{
   dbUtil.mongoConnect(db=>{
 
     redisListenClient.subscribe("ticks");
+    redisListenClient.subscribe("instanceCommands");
 
     var tick;
     redisListenClient.on("message", (channel, message)=>{
-      tick = JSON.parse(message);
+      if(channel == "ticks"){
+        tick = JSON.parse(message);
 
-      if(pairs || pairs.indexOf(tick.pair) != -1){
-        tickGenerator.processTick(tick, db);
-      }
+        if(pairs == "ALL" || (pairs && pairs.indexOf(tick.pair) != -1)){
+          tickGenerator.processTick(tick, db);
+        }
+      }else if(channel == "instanceCommands"){
+        var parsed = JSON.parse(message);
+
+        if(parsed.command && parsed.command == "kill" && parsed.id == id){
+          redisPUblishClient.publish("instanceCommands", JSON.stringify({status: dying, id: id}));
+          process.exit(0);
+        }
+      } 
     });
   });
 };

@@ -57,11 +57,15 @@ dbUtil.load = (dumpName, callback)=>{
   });
 };
 
-dbUtil.init = (callback)=>{
+dbUtil.init = callback=>{
   dbUtil.mongoConnect((db)=>{
     dbUtil.createIndexes(db, ()=>{
-      db.close();
-      callback();
+      if(callback.length == 0){
+        db.close();
+        callback();
+      }else{
+        callback(db);
+      }
     });
   });
 };

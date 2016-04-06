@@ -30,30 +30,7 @@ manager.start = function(port){
   app.use('/', index);
   app.use("/api", api);
 
-  //TODO: Remove all of those random redis publiches for calculations
-
-  // var socketServer = ws.createServer(function(conn){
-  //   socketServer.on('error', function(err){
-  //     console.log(err);
-  //   });
-  //   conn.on('text', function(input){
-  //     socketServer.connections.forEach(function(connection){
-  //       connection.sendText(input);
-  //     });
-  //   });
-  // }).listen(3596);
-
-  // var redisClient = redis.createClient();
-  // redisClient.subscribe("ticks");
-  // redisClient.subscribe("prices");
-  // redisClient.subscribe("smas");
-  // redisClient.subscribe("momentums");
-
-  // redisClient.on("message", function(channel, message){
-  //   socketServer.connections.forEach(function(conn){
-  //     conn.sendText(message);
-  //   });
-  // });
+  //TODO: Remove all of those random redis publishes for calculations
 
   dbUtils.mongoConnect(db=>{
     var collection = db.collection("instances");

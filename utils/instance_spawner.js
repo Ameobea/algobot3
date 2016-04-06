@@ -11,48 +11,30 @@ var conf = require("../conf/conf");
 
 var spawner = exports;
 
-spawner.spawnTickProcessor = (port, pairs)=>{
+spawner.spawnTickParser = pairs=>{
   return new Promise((f,r)=>{
     var listenString = "";
-    pairs.forEach((pair, i)=>{
-      listenString += pair;
-      if(i < pairs.length){
-        listenString += ",";
-      }
-    });
-    console.log(listenString);
 
-    var inst = child_process.spawn("node app.js", [`--port: ${port}`, "--nomanager", `--listen ${listenString}`], {cwd: conf.private.appRoot});
+    if(pairs != "ALL"){
+      pairs.forEach((pair, i)=>{
+        listenString += pair;
+        if(i < pairs.length-1){
+          listenString += ",";
+        }
+      });
+    }else{
+      listenString = "ALL";
+    }
+
+    var inst = child_process.spawn("node", ["app.js", "--nomanager", `--listen ${listenString}`], {cwd: conf.private.appRoot});
 
     inst.stdout.on("data", data=>{
-      f(data);
+      console.log(data);
+      f(data.toString());
     });
   });
 };
 
-//This creates a placeholder element in the instances collection with the generated port.
-spawner.getOpenPort = ()=>{
-  return new Promise((f,r)=>{
-    dbUtils.mongoConnect(db=>{
-      db.collection("instances").find().toArray().then(instances=>{
-        var range = conf.public.instancePortRange;
-        var port = spawner.portAttempt(range[0], range[1], instances);
-
-        db.collection("instances").insertOne({type: "placeholder", port: port}, (err,res)=>{
-          f(port);
-        });
-      });
-    });
-  });
-};
-
-spawner.portAttempt = (min, max, instances)=>{
-  var portAttempt = Math.floor(Math.random() * (max - min + 1)) + min;
-  var collisions = instances.filter(instance=>{return instance.port == portAttempt;});
-
-  if(collisions.length === 0){
-    return portAttempt;
-  }else{
-    return spawner.portAttempt(min, max, instances);
-  }
-};
+spawner.checkRunning
+//What used to be here is what happens you you get 4 hours of sleep
+//and then code until 2AM on a Tuseday night.
