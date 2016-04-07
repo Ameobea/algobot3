@@ -8,6 +8,7 @@ other modules that need them.
 */
 
 var redis = require("redis");
+var uuid64 = require("uuid64");
 
 var conf = require("../conf/conf");
 var dbUtil = require("../db_utils/utils");
@@ -27,6 +28,11 @@ var storeQueue = {}; //stores ticks waiting to be processed&stored
 
 tickGenerator.listen = (pairs, id)=>{
   dbUtil.mongoConnect(db=>{
+    if(!id){
+      id = uuid64();
+    }
+
+    db.collection("instances").insertOne({type: "tickParser", id: id, pairs: pairs});
 
     redisListenClient.subscribe("ticks");
     redisListenClient.subscribe("instanceCommands");
@@ -42,9 +48,13 @@ tickGenerator.listen = (pairs, id)=>{
       }else if(channel == "instanceCommands"){
         var parsed = JSON.parse(message);
 
-        if(parsed.command && parsed.command == "kill" && parsed.id == id){
-          redisPUblishClient.publish("instanceCommands", JSON.stringify({status: dying, id: id}));
-          process.exit(0);
+        if(parsed.command){
+          if(parsed.command == "kill" && parsed.id == id){
+            redisPublishClient.publish("instanceCommands", JSON.stringify({status: "dying", id: id}));
+            process.exit(0);
+          }else if(parsed.command == "ping"){
+            redisPublishClient.publish("instanceCommands", JSON.stringify({status: "alive", id: id}));
+          }
         }
       } 
     });

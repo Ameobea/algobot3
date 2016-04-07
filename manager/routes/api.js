@@ -63,7 +63,7 @@ router.get("/utils/dbRestore/:dbRestoreId", (req, res, next)=>{
 });
 
 router.get("/instances", (req, res, next)=>{
-  dbUtils.getInstances().then(data=>{
+  spawner.getInstances().then(data=>{
     res.send(JSON.stringify(data));
   }, (err)=>{console.log(err);});
 });
@@ -74,19 +74,24 @@ router.get("/instances/kill/:type/:data", (req, res, next)=>{
       resp.on("data", data=>{
         res.send(data);
       });
+    }).on('error', (e) => {
+      res.send("That instance doesn't exist.");
     });
   }else if(req.params.type == "tickParser"){
     var redisPubClient = redis.createClient();
     var redisSubClient = redis.createClient();
 
-    redisSubClient.subscribe("instanceCommands");
-    redisPubClient.publish(JSON.stringify({command: "kill", id: data}));
+    redisSubClient.subscribe("instanceCommands")
+
+    redisSubClient.on("subscribe", ()=>{
+      redisPubClient.publish("instanceCommands", JSON.stringify({command: "kill", id: req.params.data}));
+    });
 
     redisSubClient.on("message", (channel, message)=>{
       var parsed = JSON.parse(message);
 
-      if(parsed.status == "dying" && parsed.id == id){
-        f();
+      if(parsed.status == "dying" && parsed.id == req.params.data){
+        res.send(`Successfully killed instance with id ${req.params.data}`);
       }
     });
   }
@@ -95,9 +100,7 @@ router.get("/instances/kill/:type/:data", (req, res, next)=>{
 //:data should be a string in the following format: "EURUSD,USDCAD,USDJPY"
 router.get("/instances/spawn/:type/:data", (req, res, next)=>{
   if(req.params.type == "tickParser"){
-    var pairs = req.params.data.split(",");
-
-    spawner.spawnTickParser(pairs).then(result=>{
+    spawner.spawnTickParser(req.params.data).then(result=>{
       res.send(JSON.stringify(result)); //TODO: Debug this
     });
   }

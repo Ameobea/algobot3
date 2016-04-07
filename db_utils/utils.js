@@ -145,16 +145,3 @@ dbUtil.transferOld = (fromCollectionName, toCollectionName, timestamp, lookback,
     });
   });
 };
-
-dbUtil.getInstances = ()=>{
-  return new Promise((f,r)=>{
-    dbUtil.mongoConnect(db=>{
-      db.collection("instances").find().toArray((err, instances)=>{
-        db.collection("backtestFlags").find().toArray((err, flags)=>{
-          f({backtests: flags, instances: instances});
-          db.close();
-        });
-      });
-    });
-  });
-};

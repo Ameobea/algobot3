@@ -3,6 +3,12 @@
 
 $(document).ready(()=>{
   //set up button listeners
+  $("#instance-spawn-button").click(()=>{
+    var type = $("#instance-type").val()
+    var data = $("#instance-data-box").val();
+
+    spawnInstance(type, data);
+  });
 
   //load data
   loadInstances();
@@ -20,7 +26,9 @@ var update = ()=>{
     $.each(parsed.instances, (index, elem)=>{
       
       if(elem.type == "manager"){
-        table += (`<tr><td>${getKillButton(elem.type, elem.port)}</td><td>Manager</td><td>Port: ${elem.port}</td></tr>`);
+        table += (`<tr><td>${getKillButton(elem.type, elem)}</td><td>Manager</td><td>Port: <b>${elem.port}</b></td></tr>`);
+      }else if(elem.type == "tickParser"){
+        table += (`<tr><td>${getKillButton(elem.type, elem)}</td><td>Tick Parser</td><td>Listening for pairs: <b>${elem.pairs}</b></td></tr>`);
       }
     });
 
@@ -29,7 +37,7 @@ var update = ()=>{
     $("#running-instances").html(table);
 
     $.each(parsed.backtests, (index, elem)=>{
-
+      // TODO
     });
   }).fail(err=>{
     console.log("Unable to connect to ")
@@ -37,7 +45,15 @@ var update = ()=>{
 }
 
 var getKillButton = (type, data)=>{
-  return `<input type="button" onclick="killConfirm('${type}', '${data}')" value="X">`;
+  var include;
+
+  if(type == "manager"){
+    include = data.port;
+  }else if(type == "tickParser"){
+    include = data.id;
+  }
+
+  return `<input type="button" onclick="killConfirm('${type}', '${include}')" value="X">`;
 };
 
 var killConfirm = (type, data)=>{
@@ -49,12 +65,8 @@ var killConfirm = (type, data)=>{
 
 var killInstance = (type, data)=>{
   $.get(`./api/instances/kill/${type}/${data}`, res=>{
-    var parsed = JSON.parse(res);
-
-    if(parsed.success){
-      $("#statusbar").html("<p>Successfully killed instance.</p>");
-      update();
-    }
+    $("#statusbar").html(res);
+    update();
   }).fail(err=>{
     $("#statusbar").html(`<p>Failed to kill instance: ${err.status}</p>`);
   })
@@ -62,6 +74,7 @@ var killInstance = (type, data)=>{
 
 var spawnInstance = (type, data)=>{
   $.get(`./api/instances/spawn/${type}/${data}`, res=>{
-    $("#statusbar").html(res);
+    $("#statusbar").html(`Instance spawned with message: ${res}`);
+    setTimeout(()=>{update();},500);
   });
 }

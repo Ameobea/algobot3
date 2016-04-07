@@ -62,7 +62,7 @@ if(argv.onlymanager || argv.m){
 
     if(argv.listen || argv.l){
       if(argv.listen){
-        var pairs = argv.listen
+        var pairs = argv.listen;
       }
 
       if(argv.l){
@@ -72,6 +72,8 @@ if(argv.onlymanager || argv.m){
       if(pairs != "ALL"){
         pairs = pairs.split(",");
       }
+
+      console.log(pairs);
       
       tickGenerator.listen(pairs);
     }else{
@@ -90,48 +92,5 @@ if(argv.onlymanager || argv.m){
       backtest.clearFlags(()=>{});
       dbUtils.flush(()=>{});
     }
-  });
-};
-
-//pairs is an array of pairs to listen for.
-//fulfills with the id of the newly spawned parser if able to
-//rejects if one of the pairs is already listened to.
-var parserSpawn = (pairs, db)=>{
-  return new Promise((f,r)=>{
-    db.collection("instances").find({type: "tickParser"}).toArray().then(instances=>{
-      //TODO: Query to see if the instances are actually alive or not.
-
-      var collisions = instances.filter(elem=>{
-        var collision = false;
-
-        pairs.forEach(pair=>{
-          if(elem.pairs.indexOf(pair) != -1){
-            collision = true;
-          }
-        });
-
-        return collision;
-      });
-
-      if(collisions.length != 0){
-        r();
-      }else{
-        db.collection.instances.insertOne({type: "tickParser", id: uuid64(), pairs: pairs}, (err, res)=>{
-          f(id);
-        });
-      }
-    });
-  });
-};
-
-//Queries a tick parser via redis and fulfills true if it responds within 1 second
-//otherwise fulfills false after 1 second.
-var parserVerify = id=>{
-  return new Promise((f,r)=>{
-    var pub = redis.createClient();
-    var sub = redis.createClient();
-    sub.subscribe("instanceCommands");
-
-    
   });
 };
