@@ -94,6 +94,12 @@ router.get("/instances/kill/:type/:data", (req, res, next)=>{
         res.send(`Successfully killed instance with id ${req.params.data}`);
       }
     });
+  }else if(req.params.type == "backtest"){
+    dbUtils.mongoConnect(db=>{
+      db.collection("backtestFlags").deleteOne({pair: req.params.data}).then(()=>{
+        res.send(`Stopping backtest with pair ${req.params.data}...`);
+      });
+    });
   }
 });
 

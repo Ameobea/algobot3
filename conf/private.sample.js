@@ -1,3 +1,4 @@
+"use strict";
 /*
 Private Configutation Settings
 
@@ -8,9 +9,10 @@ sensitive information that should not be committed.
 
 var private = exports;
 
-private.mongodbIP = "mongodb://localhost:27017";
-private.mongodbDatabase = "bot3";
-private.websocketIp = "1.2.3.4:3596"
+privateConfig.mongodbIP = "mongodb://localhost:27017";
+privateConfig.mongodbDatabase = "bot3";
+privateConfig.websocketIp = "1.2.3.4:3596";
+
 
 privateConfig.tickWriterOutputPath = "/path/to/output/directory/";
 

@@ -26,19 +26,19 @@ var update = ()=>{
     $.each(parsed.instances, (index, elem)=>{
       
       if(elem.type == "manager"){
-        table += (`<tr><td>${getKillButton(elem.type, elem)}</td><td>Manager</td><td>Port: <b>${elem.port}</b></td></tr>`);
+        table += `<tr><td>${getKillButton(elem.type, elem)}</td><td>Manager</td><td>Port: <b>${elem.port}</b></td></tr>`;
       }else if(elem.type == "tickParser"){
-        table += (`<tr><td>${getKillButton(elem.type, elem)}</td><td>Tick Parser</td><td>Listening for pairs: <b>${elem.pairs}</b></td></tr>`);
+        table += `<tr><td>${getKillButton(elem.type, elem)}</td><td>Tick Parser</td><td>Listening for pairs: <b>${elem.pairs}</b></td></tr>`;
       }
+    });
+
+    $.each(parsed.backtests, (index, elem)=>{
+      table += `<tr><td>${getKillButton("backtest", elem)}</td><td>Backtest</td><td>Pair: <b>${elem.pair}</b></td></tr>`;// TODO: Add type to backtest
     });
 
     table += "</table>";
 
     $("#running-instances").html(table);
-
-    $.each(parsed.backtests, (index, elem)=>{
-      // TODO
-    });
   }).fail(err=>{
     console.log("Unable to connect to ")
   })
@@ -51,6 +51,8 @@ var getKillButton = (type, data)=>{
     include = data.port;
   }else if(type == "tickParser"){
     include = data.id;
+  }else if(type == "backtest"){
+    include = data.pair;
   }
 
   return `<input type="button" onclick="killConfirm('${type}', '${include}')" value="X">`;
