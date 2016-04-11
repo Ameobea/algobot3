@@ -16,11 +16,14 @@ var conf = require("../../conf/conf");
 
 //unix timestamp format.
 var pair = "usdcad"; //like "usdcad"
-var startTime = 1457572877950; //like 1393826400 * 1000
+var startTime = 1451887200 * 1000; //like 1393826400 * 1000
 var endTime = 1459531254 * 1000;
 
 //time between data requests
 var downloadDelay = 1;
+
+//0 = no logging, 1 = error logging, 2 = log EVERYTHING
+var logLevel = 2;
 
 var redisPubclient = redis.createClient();
 var redisSubClient = redis.createClient();
@@ -33,7 +36,9 @@ var curStart;
 var curEnd;
 
 redisSubClient.on("message", (channel, message)=>{
-  //console.log(message);
+  if(logLevel == 2){
+    console.log("getting: " + message);
+  }
   var parsed = JSON.parse(message);
 
   if(parsed.error && parsed.error == "No ticks in range"){
@@ -43,6 +48,9 @@ redisSubClient.on("message", (channel, message)=>{
     }, downloadDelay);
   }else if(parsed.status && parsed.status == ">300 data"){ //there were more than 300 ticks in the 10-second range
     //TODO: Handle >300 ticks
+    if(logLevel >= 1){
+      console.log("Error - more than 300 ticks in that 10-second time range.");
+    }
   }else if(parsed.type && parsed.type == "segmentID"){
     responseWaiterCaller(parsed.id);
     //console.log("New chunk id: " + parsed.id);
@@ -65,7 +73,9 @@ redisSubClient.on("message", (channel, message)=>{
 //if no reply from server in 1.5 seconds, assume it's not coming and start over.
 var responseWaiter = chunkID=>{
   if(lastChunkIDs.indexOf(chunkID) == -1){ //if we haven't recieved a tick from the current segment yet
-    console.log(chunkID + " not in array; Resending data request...");
+    if(logLevel >= 1){
+      console.log(chunkID + " not in array; Resending data request...");
+    }
     downloadData(curStart, curEnd); //re-send request for that segment
   }
 };
@@ -82,6 +92,9 @@ var downloadData = (start, end)=>{
   lastTriedEndPrice = end;
   //JSON format should be this: "{Pair: "USD/CAD", startTime: 1457300020.23, endTime: 1457300025.57, resolution: t1}"
   var toSend = [{pair: formatPair(pair), startTime: start + 1, endTime: end, resolution: "t1"}];
+  if(logLevel == 2){
+    console.log("sending: " + JSON.stringify(toSend));
+  }
   redisPubclient.publish("priceRequests", JSON.stringify(toSend));
 };
 

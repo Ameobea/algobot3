@@ -3,10 +3,10 @@ package tickrecorder;
 import com.fxcore2.*;
 import redis.clients.jedis.*;
 
-public class TickRecorder {
+public class TickRecorder{
     private static JedisPool redisPool = new JedisPool(Config.redisIP, Config.redisPort);
 
-    public static void main(String[] args) {
+    public static void main(String[] args){
         O2GSession session = FXCMConnect(Config.FXCMUsername, Config.FXCMPassword, Config.FXCMHostsURL, Config.connectionType);
         
         //printPrices(session);
@@ -74,15 +74,11 @@ public class TickRecorder {
     }
     
     private static void setupRedis(O2GSession session){
-        Jedis client = null;
-        try{
-            client = redisPool.getResource();
+        try(Jedis client = redisPool.getResource()) {
             redisPubsubListener redisListener = new redisPubsubListener(session);
             client.subscribe(redisListener, "priceRequests");
-        }finally{
-            if(client != null){
-                client.close();
-            }
+        }catch(redis.clients.jedis.exceptions.JedisConnectionException ex){
+            setupRedis(session);
         }
     }
     
