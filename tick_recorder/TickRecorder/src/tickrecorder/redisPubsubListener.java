@@ -32,12 +32,13 @@ public class redisPubsubListener extends JedisPubSub {
             long startTimeNum = (Long)realParsed.get("startTime");
             long endTimeNum = (Long)realParsed.get("endTime");
             String resolution = (String)realParsed.get("resolution");
+            String uuid = (String)realParsed.get("uuid");
             
             Calendar startTime = Calendar.getInstance();
             startTime.setTimeInMillis(startTimeNum);
             Calendar endTime = Calendar.getInstance();
             endTime.setTimeInMillis(endTimeNum);
-            HistoryDownloader.downloadHistory(session, pair, resolution, startTime, endTime);
+            HistoryDownloader.downloadHistory(session, pair, resolution, startTime, endTime, uuid);
         }
     }
 }

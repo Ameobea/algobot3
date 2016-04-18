@@ -29,7 +29,7 @@ public class TickRecorder{
             try{
                 Thread.sleep(50);
             }catch(InterruptedException e){}
-        } //TODO: Handle internet connection issues.
+        }
     }
     
     public static O2GSession FXCMConnect(String username, String password, String url, String type){
