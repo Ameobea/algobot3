@@ -6,11 +6,20 @@ FXCM Historical Data Downloader
 Using the FXCM Broker API, this utility pulls down historical ticks from their trade servers
 in conjunction with the tick_recorder java application which serves as the link to their API.
 
-Requests are made to that application over redis which are then procesed, sent to the FXCM servers,
-and sent back as a redis reply.  
+1. Queue up many requests and save their unique ids to RequestQueue
+2. java connector returns a new chunkID when the API accepts the request, save that to DownloadQueue
+3. new segment returned with segment's data; add success to SuccessQueue
+4. after it's been 1 second since last response from the server, re-queue up any un-recieved requests.
+5. repeat step 4 until all chunks in the superSegment are recieved; then move on to next superSegment.
 */
 var redis = require("redis"); //TODO: Intelligently skip weekends
 var fs = require("fs");
+var uuid64 = require("uuid64");
+
+var Promise = require("bluebird");
+Promise.onPossiblyUnhandledRejection(function(error){
+    throw error;
+});
 
 var conf = require("../../conf/conf");
 
@@ -20,20 +29,27 @@ var startTime = 1451887200 * 1000; //like 1393826400 * 1000
 var endTime = 1459531254 * 1000;
 
 //time between data requests
-var downloadDelay = 1;
+var downloadDelay = 50;
+
+//ms to wait after last data from server to re-send missed requests
+var checkDelay = 300;
 
 //0 = no logging, 1 = error logging, 2 = log EVERYTHING
-var logLevel = 2;
+var logLevel = 0;
+
+//number of 10-second chunks queued up (almost) simultaneously
+var superChunkSize = 50;
 
 var redisPubclient = redis.createClient();
 var redisSubClient = redis.createClient();
-redisSubClient.subscribe("historicalPrices");
+redisSubClient.subscribe("historicalPrices"); 
 
-var lastTick = {timestamp: startTime};
-var lastTriedEndPrice = startTime + 10000;
-var lastChunkIDs = [];
-var curStart;
-var curEnd;
+var requestQueue; // holds uuids of sent segment requests
+var downloadQueue; // holds uuids of accepted segment requests
+var successQueue; // holds uuids of downloaded segments
+
+var lastDataMs; // time in ms of last recieved data from server
+var downloading = false;
 
 redisSubClient.on("message", (channel, message)=>{
   if(logLevel == 2){
@@ -41,77 +57,137 @@ redisSubClient.on("message", (channel, message)=>{
   }
   var parsed = JSON.parse(message);
 
-  if(parsed.error && parsed.error == "No ticks in range"){
-    setTimeout(()=>{
-      lastChunkIDs.push(parsed.id);
-      downloadData(lastTriedEndPrice, lastTriedEndPrice + 10000);
-    }, downloadDelay);
+  if(parsed.error && parsed.error == "No ticks in range"){ //no ticks in range
+    downloadQueue.push({uuid: parsed.uuid, id: parsed.id});
   }else if(parsed.status && parsed.status == ">300 data"){ //there were more than 300 ticks in the 10-second range
     //TODO: Handle >300 ticks
     if(logLevel >= 1){
       console.log("Error - more than 300 ticks in that 10-second time range.");
     }
-  }else if(parsed.type && parsed.type == "segmentID"){
-    responseWaiterCaller(parsed.id);
-    //console.log("New chunk id: " + parsed.id);
-  }else if(parsed.type && parsed.type == "segment"){// new segment    
-    lastChunkIDs.push(parsed.id);
-    if(lastChunkIDs.length > 5000){
-      lastChunkIDs.shift()
-    }
+  }else if(parsed.type && parsed.type == "segmentID"){ // segment request recieved and download started
+    downloadQueue.push({uuid: parsed.uuid, id: parsed.id});
+  }else if(parsed.type && parsed.type == "segment"){// new segment
+    lastDataMs = Date.now();
+    successQueue.push(parsed.id);
 
     parsed.data.forEach(tick=>{
       storeTick(tick);
     });
-
-    setTimeout(()=>{
-      downloadData(lastTriedEndPrice, lastTriedEndPrice + 10000);
-    }, downloadDelay);
   }
 });
 
-//if no reply from server in 1.5 seconds, assume it's not coming and start over.
-var responseWaiter = chunkID=>{
-  if(lastChunkIDs.indexOf(chunkID) == -1){ //if we haven't recieved a tick from the current segment yet
-    if(logLevel >= 1){
-      console.log(chunkID + " not in array; Resending data request...");
-    }
-    downloadData(curStart, curEnd); //re-send request for that segment
-  }
+var formatPair = rawPair=>{
+  var currencyOne = rawPair.toUpperCase().substring(0,3);
+  var currencyTwo = rawPair.toUpperCase().substring(3,6);
+  return currencyOne + "/" +  currencyTwo;
 };
 
-var responseWaiterCaller = oldID=>{
+//Starts the download of a 10-second segment of ticks.
+var downloadSegment = (startTime, delay)=>{
+  if(!delay){
+    delay = 0;
+  }
+
   setTimeout(()=>{
-    responseWaiter(oldID);
-  }, 25000);
-};
+    var uuid = uuid64();
+    //console.log(uuid);
 
-var downloadData = (start, end)=>{
-  curStart = start;
-  curEnd = end;
-  lastTriedEndPrice = end;
-  //JSON format should be this: "{Pair: "USD/CAD", startTime: 1457300020.23, endTime: 1457300025.57, resolution: t1}"
-  var toSend = [{pair: formatPair(pair), startTime: start + 1, endTime: end, resolution: "t1"}];
-  if(logLevel == 2){
-    console.log("sending: " + JSON.stringify(toSend));
-  }
-  redisPubclient.publish("priceRequests", JSON.stringify(toSend));
-};
+    var toSend = {uuid: uuid, pair: formatPair(pair), startTime: startTime, endTime: startTime + 10000, resolution: "t1"};
+    requestQueue.push(toSend);
 
-var initFile = (pair, callback)=>{
-  fs.writeFile(conf.private.tickRecorderOutputPath + pair + ".csv", "timestamp, bid, ask", (err, res)=>{
-    callback();
+    redisPubclient.publish("priceRequests", JSON.stringify([toSend]));
   });
 };
+
+
+//This queues up a ton of 10-second chunks to download semi-asynchronously.
+var downloadSuperSegment = startTime=>{
+  resetQueues();
+
+  for(var i=0;i<superChunkSize;i++){
+    downloadSegment(startTime, i*downloadDelay);
+
+    startTime = startTime + 10000;
+  }
+
+  lastDataMs = false;
+  downloadWaiter().then(res=>{
+    verifyDownload().then(()=>{
+      downloadSuperSegment(startTime);
+    });
+  });
+};
+
+var verifyDownload = ()=>{
+  return new Promise((f,r)=>{
+    var verify = ()=>{
+      let toResend = [];
+      var id = false;
+
+      requestQueue.forEach(request=>{
+        let downloadMatches = downloadQueue.filter(download=>{
+          if(download.uuid == request.uuid){
+            id = download.id;
+            return true;
+          }else{
+            return false;
+          }
+        }).length == 1;
+
+        if(downloadMatches.length){
+          if(successQueue.indexOf(id) == -1){
+            console.log("resending " + request.uuid);
+            toResend.push(request);
+          }
+        }
+      });
+
+      if(toResend.length > 0){
+        resetQueues();
+        lastDataMs = false;
+
+        toResend.forEach(elem=>{
+          requestQueue.push(elem);
+          redisPubclient.publish("priceRequests", JSON.stringify([elem]));
+        });
+        
+        downloadWaiter().then(res=>{
+          //console.log("ff");
+          verify();
+        });
+      }else{
+        f();
+      }
+    }
+
+    verify();
+  });
+}
+
+var downloadWaiter = ()=>{
+  return new Promise((f,r)=>{
+    var check = ()=>{
+      if(typeof lastDataMs == "number" && Date.now() >= lastDataMs + checkDelay){
+        f("YES");
+      }else{
+        setTimeout(check, checkDelay/10);
+      }
+    }
+
+    check();
+  });
+}
+
+var resetQueues = ()=>{
+  requestQueue = [];
+  downloadQueue = [];
+  successQueue = [];
+}
 
 var existingFiles = {};
 var toAppend;
 
 var storeTick = (tick)=>{
-  if(lastTick.timestamp >= tick.timestamp){ //don't store out-of-order ticks
-    return;
-  }
-
   if(tick.timestamp > endTime){
     console.log("All ticks in range downloaded and stored.");
     process.exit(0);
@@ -134,17 +210,15 @@ var storeTick = (tick)=>{
       fulfill();
     }
   }).then(()=>{
-    lastTick = tick;
-
     toAppend = "\n" + tick.timestamp + ", " + tick.bid + ", " + tick.ask;
     fs.appendFile(conf.private.tickRecorderOutputPath + pair + ".csv", toAppend, (err, res)=>{});
   });
 };
 
-var formatPair = rawPair=>{
-  var currencyOne = rawPair.toUpperCase().substring(0,3);
-  var currencyTwo = rawPair.toUpperCase().substring(3,6);
-  return currencyOne + "/" +  currencyTwo;
+var initFile = (pair, callback)=>{
+  fs.writeFile(conf.private.tickRecorderOutputPath + pair + ".csv", "timestamp, bid, ask", (err, res)=>{
+    callback();
+  });
 };
 
-downloadData(startTime, startTime + 10000);
+downloadSuperSegment(startTime); //initiate segment downloading
