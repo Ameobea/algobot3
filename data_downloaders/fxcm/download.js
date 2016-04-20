@@ -23,10 +23,12 @@ Promise.onPossiblyUnhandledRejection(function(error){
 
 var conf = require("../../conf/conf");
 
+//TODO: Enable resuming from last tick in output file
+
 //unix timestamp format.
 var pair = "usdcad"; //like "usdcad"
-var startTime = 1451887200 * 1000; //like 1393826400 * 1000
-var endTime = 1459531254 * 1000;
+var startTime = 1452290337645; //like 1393826400 * 1000
+var endTime = 1460955600 * 1000;
 
 //time between data requests
 var downloadDelay = 50;
@@ -42,7 +44,7 @@ var superChunkSize = 50;
 
 var redisPubclient = redis.createClient();
 var redisSubClient = redis.createClient();
-redisSubClient.subscribe("historicalPrices"); 
+redisSubClient.subscribe("historicalPrices");
 
 var requestQueue; // holds uuids of sent segment requests
 var downloadQueue; // holds uuids of accepted segment requests
@@ -57,16 +59,17 @@ redisSubClient.on("message", (channel, message)=>{
   }
   var parsed = JSON.parse(message);
 
-  if(parsed.error && parsed.error == "No ticks in range"){ //no ticks in range
+  if(parsed.error == "No ticks in range"){ //no ticks in range
+    lastDataMs = Date.now();
     downloadQueue.push({uuid: parsed.uuid, id: parsed.id});
   }else if(parsed.status && parsed.status == ">300 data"){ //there were more than 300 ticks in the 10-second range
     //TODO: Handle >300 ticks
     if(logLevel >= 1){
       console.log("Error - more than 300 ticks in that 10-second time range.");
     }
-  }else if(parsed.type && parsed.type == "segmentID"){ // segment request recieved and download started
+  }else if(parsed && parsed.type == "segmentID"){ // segment request recieved and download started
     downloadQueue.push({uuid: parsed.uuid, id: parsed.id});
-  }else if(parsed.type && parsed.type == "segment"){// new segment
+  }else if(parsed && parsed.type == "segment"){// new segment
     lastDataMs = Date.now();
     successQueue.push(parsed.id);
 
@@ -84,10 +87,6 @@ var formatPair = rawPair=>{
 
 //Starts the download of a 10-second segment of ticks.
 var downloadSegment = (startTime, delay)=>{
-  if(!delay){
-    delay = 0;
-  }
-
   setTimeout(()=>{
     var uuid = uuid64();
     //console.log(uuid);
@@ -111,7 +110,7 @@ var downloadSuperSegment = startTime=>{
   }
 
   lastDataMs = false;
-  downloadWaiter().then(res=>{
+  downloadWaiter().then(()=>{
     verifyDownload().then(()=>{
       downloadSuperSegment(startTime);
     });
@@ -125,17 +124,13 @@ var verifyDownload = ()=>{
       var id = false;
 
       requestQueue.forEach(request=>{
-        let downloadMatches = downloadQueue.filter(download=>{
-          if(download.uuid == request.uuid){
-            id = download.id;
-            return true;
-          }else{
-            return false;
-          }
-        }).length == 1;
+        //Thanks to https://github.com/dalexj for these sexy lines:
+        let filtered = downloadQueue.filter(download => download.uuid == request.uuid);
+        let downloadMatches = filtered.length == 1;
+        id = filtered[0].id;
 
         if(downloadMatches.length){
-          if(successQueue.indexOf(id) == -1){
+          if(!successQueue.includes(id)){
             console.log("resending " + request.uuid);
             toResend.push(request);
           }
@@ -150,8 +145,8 @@ var verifyDownload = ()=>{
           requestQueue.push(elem);
           redisPubclient.publish("priceRequests", JSON.stringify([elem]));
         });
-        
-        downloadWaiter().then(res=>{
+
+        downloadWaiter().then(()=>{
           //console.log("ff");
           verify();
         });
@@ -168,7 +163,7 @@ var downloadWaiter = ()=>{
   return new Promise((f,r)=>{
     var check = ()=>{
       if(typeof lastDataMs == "number" && Date.now() >= lastDataMs + checkDelay){
-        f("YES");
+        f();
       }else{
         setTimeout(check, checkDelay/10);
       }
