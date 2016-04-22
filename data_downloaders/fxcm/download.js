@@ -24,6 +24,8 @@ Promise.onPossiblyUnhandledRejection(function(error){
 var conf = require("../../conf/conf");
 
 //TODO: Enable resuming from last tick in output file
+//TODO: Add documentation for sorting and removing duplicate lines from output
+//TODO: Make start/stop time cli arguments or create config file
 
 //unix timestamp format.
 var pair = "usdcad"; //like "usdcad"
@@ -59,7 +61,7 @@ redisSubClient.on("message", (channel, message)=>{
   }
   var parsed = JSON.parse(message);
 
-  if(parsed.error == "No ticks in range"){ //no ticks in range
+  if(parsed.error == "No ticks in range"){
     lastDataMs = Date.now();
     downloadQueue.push({uuid: parsed.uuid, id: parsed.id});
   }else if(parsed.status && parsed.status == ">300 data"){ //there were more than 300 ticks in the 10-second range
@@ -121,15 +123,16 @@ var verifyDownload = ()=>{
   return new Promise((f,r)=>{
     var verify = ()=>{
       let toResend = [];
-      var id = false;
 
       requestQueue.forEach(request=>{
         //Thanks to https://github.com/dalexj for these sexy lines:
-        let filtered = downloadQueue.filter(download => download.uuid == request.uuid);
+        let filtered = downloadQueue.filter(download => download.uuid === request.uuid);
         let downloadMatches = filtered.length == 1;
-        id = filtered[0].id;
+        if(downloadMatches){
+          let id = filtered[0].id;
+        }
 
-        if(downloadMatches.length){
+        if(downloadMatches){
           if(!successQueue.includes(id)){
             console.log("resending " + request.uuid);
             toResend.push(request);
@@ -146,10 +149,7 @@ var verifyDownload = ()=>{
           redisPubclient.publish("priceRequests", JSON.stringify([elem]));
         });
 
-        downloadWaiter().then(()=>{
-          //console.log("ff");
-          verify();
-        });
+        downloadWaiter().then(verify);
       }else{
         f();
       }
