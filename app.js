@@ -74,7 +74,7 @@ if(argv.onlymanager || argv.m){
       }
 
       console.log(pairs);
-      
+
       tickGenerator.listen(pairs);
     }else{
       tickGenerator.listen("ALL");

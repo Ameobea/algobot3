@@ -3,7 +3,7 @@
 Ledger
 
 This module is responsible for keeping track of open positions for the bot
-as well as managing the balance and utilisation of margin.  
+as well as managing the balance and utilisation of margin.
 */
 var ledger = exports;
 

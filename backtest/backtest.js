@@ -62,7 +62,7 @@ backtest.live = (pair, startTime)=>{
     if(!running){
       backtest.setRunningFlag(pair, ()=>{
         var redisClient = redis.createClient();
-        
+
         fs.readFile(conf.public.tickDataDirectory + pair.toUpperCase() + '/index.csv', {encoding: 'utf8'}, 'r', function(err,data){
           var result = [];
           var indexData = data.split('\n');
@@ -119,7 +119,7 @@ backtest.liveSend = (chunk, chunkResult, curIndex, diff, oldTime, pair, client)=
     diff = (parseFloat(chunkResult[curIndex+1][0]) - parseFloat(chunkResult[curIndex][0]))*1000;
   }
   if(curIndex % conf.public.liveBacktestCheckInterval === 0){ //if this is a check interval
-    backtest.checkIfRunning(pair, (running)=>{ 
+    backtest.checkIfRunning(pair, (running)=>{
       if(!running){ //and it's been cancelled
         console.log("Backtest for pair " + pair + " stopped.");
         return;
@@ -138,7 +138,7 @@ backtest.fast = (pair, startTime, diff)=>{
     if(!running){
       backtest.setRunningFlag(pair, ()=>{
         var client = redis.createClient();
-        
+
         fs.readFile(conf.public.tickDataDirectory + pair.toUpperCase() + '/index.csv', {encoding: 'utf8'}, 'r', (err,data)=>{
           var result = [];
           var indexData = data.split('\n');
@@ -233,7 +233,7 @@ backtest.nostore = (pair, startTime)=>{
     if(!running){
       backtest.setRunningFlag(pair, ()=>{
         var client = redis.createClient();
-        
+
         fs.readFile(conf.public.tickDataDirectory + pair.toUpperCase() + '/index.csv', {encoding: 'utf8'}, 'r', (err,data)=>{
           var result = [];
           var indexData = data.split('\n');

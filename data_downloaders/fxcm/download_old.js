@@ -7,7 +7,7 @@ Using the FXCM Broker API, this utility pulls down historical ticks from their t
 in conjunction with the tick_recorder java application which serves as the link to their API.
 
 Requests are made to that application over redis which are then procesed, sent to the FXCM servers,
-and sent back as a redis reply.  
+and sent back as a redis reply.
 */
 var redis = require("redis"); //TODO: Intelligently skip weekends
 var fs = require("fs");
@@ -54,7 +54,7 @@ redisSubClient.on("message", (channel, message)=>{
   }else if(parsed.type && parsed.type == "segmentID"){
     responseWaiterCaller(parsed.id);
     //console.log("New chunk id: " + parsed.id);
-  }else if(parsed.type && parsed.type == "segment"){// new segment    
+  }else if(parsed.type && parsed.type == "segment"){// new segment
     lastChunkIDs.push(parsed.id);
     if(lastChunkIDs.length > 5000){
       lastChunkIDs.shift()

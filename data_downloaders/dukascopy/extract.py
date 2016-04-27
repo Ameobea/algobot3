@@ -9,7 +9,6 @@ for filename in os.listdir("/home/ubuntu/bot/tick_data/EURSEK"):
   f = open("/home/ubuntu/bot/tick_data/EURSEK/"+filename, "rb")
   #f.read(4000)
   # for i in range(40):
-  #   
   byte = f.read(1)
   i=0
   resArray = []

@@ -6,7 +6,7 @@ No-store Algorithm Core Module
 This module is meant for backtesting strategies while cutting
 out the database entirely for the performance benefit.  Data is
 stored internally and only kept for as long as it is needed in the
-current backtest.  
+current backtest.
 */
 var conf = require("../conf/conf");
 var sma = require("../algos/average/sma");
@@ -83,7 +83,7 @@ core.processUpdate = (priceUpdate, db)=>{
 
   return new Promise((f,r)=>{
     var pair = priceUpdate.pair;
-    
+
     if(!pricesDb[pair]){
       pricesDb[pair] = [];
     }

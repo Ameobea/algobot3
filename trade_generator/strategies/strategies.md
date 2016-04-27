@@ -10,4 +10,4 @@ Strategies are separated into different modules.  Each module contains certain f
 
 This function is called on each price update that the bot processes once all calculations for that update have been completed.  Its responsibility is to process data from the bot and determine when a trade should be opened.  Data is an object containing data from the bot.  Check ../tradeManager/tradeManager.md for more information about this object and the environment object returned from  the `conditionEnvironment` module.
 
-If the strategy determines that a position should be opened, it can do this by calling the `openPosition()` function from `ledger.js`.  
+If the strategy determines that a position should be opened, it can do this by calling the `openPosition()` function from `ledger.js`.

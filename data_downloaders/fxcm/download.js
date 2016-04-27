@@ -24,7 +24,6 @@ Promise.onPossiblyUnhandledRejection(function(error){
 var conf = require("../../conf/conf");
 
 //TODO: Enable resuming from last tick in output file
-//TODO: Add documentation for sorting and removing duplicate lines from output
 //TODO: Make start/stop time cli arguments or create config file
 
 //unix timestamp format.
@@ -128,11 +127,10 @@ var verifyDownload = ()=>{
         //Thanks to https://github.com/dalexj for these sexy lines:
         let filtered = downloadQueue.filter(download => download.uuid === request.uuid);
         let downloadMatches = filtered.length == 1;
-        if(downloadMatches){
-          let id = filtered[0].id;
-        }
 
         if(downloadMatches){
+          let id = filtered[0].id;
+
           if(!successQueue.includes(id)){
             console.log("resending " + request.uuid);
             toResend.push(request);

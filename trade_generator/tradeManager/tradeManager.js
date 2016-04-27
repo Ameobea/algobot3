@@ -17,7 +17,7 @@ Promise.onPossiblyUnhandledRejection(function(error){
 
 var manager = exports;
 
-/*Called on each priceUpdate for each open position.  
+/*Called on each priceUpdate for each open position.
 Conditions for each of the open positions are evaluated
 and actions are taken depending on their results.
 See trademanagers.md
@@ -37,7 +37,7 @@ manager.manage = (position, data, evaluated, db, vardb)=>{
   });
 };
 
-/*for each condition, evaluate and then 
+/*for each condition, evaluate and then
 if it returns a new version of the position
 use that to evaulate the other positions.*/
 manager.iterConditions = (position, env, actions, evaled, callback)=>{
@@ -67,7 +67,7 @@ manager.iterConditions = (position, env, actions, evaled, callback)=>{
     }).catch(err=>{console.log("Inside func.call promise" + err);});
   }else{
     callback(position); //when all conditions are evaluated, return the updated position
-  } 
+  }
 };
 
 manager.verifyPositions = positionCache=>{

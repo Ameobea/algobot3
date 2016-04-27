@@ -4,7 +4,7 @@ Tick Generator
 
 Parses incoming ticks from any source (backtest or live data feed).
 It then stores them in the database as well as sending them to any
-other modules that need them.  
+other modules that need them.
 */
 
 var redis = require("redis");
@@ -56,7 +56,7 @@ tickGenerator.listen = (pairs, id)=>{
             redisPublishClient.publish("instanceCommands", JSON.stringify({status: "alive", id: id}));
           }
         }
-      } 
+      }
     });
   });
 };
@@ -102,7 +102,6 @@ tickGenerator.calcPeriodAverage = (ticks, curTime, redisClient, db, callback)=>{
           nostoreCore.processUpdate(publishObject, db).then(()=>{
             backtest.nostoreNext();
           }, ()=>{ //didn't process fully
-            
             backtest.nostoreNext();
           });
         }

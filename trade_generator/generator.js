@@ -26,7 +26,7 @@ process.on("rejectionHandled", function(promise) {
     console.log("handled rejection");
 });
 
-var positionsCache = []; 
+var positionsCache = [];
 // TODO: add functionality to get open positions from broker if bot fails
 // TODO: Close all positions in case of an actual emergency where we have open positions with broker of which we have no record
 
@@ -65,7 +65,7 @@ tradeGen.eachTick = (data, db, vardb)=>{
             }).catch(err=>{console.log(err);});
           }).catch(err=>{console.log(err);});// fulfill when done evaluating all conditions of all positions
         });
-      //} 
+      //}
     }).catch(err=>{console.log(err);});
   });
 };

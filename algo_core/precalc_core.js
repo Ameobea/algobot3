@@ -102,7 +102,7 @@ core.iterPrices = (dbData, pair, db, index, pricesCollection, averagesCollection
 
     var data = {pair: pair, timestamp: timestamp, momentums: curMomentums[pair],
       averages: curAverages[pair], crosses: curCrosses};
-    
+
     tradeGen.eachTick(data, db).then(()=>{
       fulfill(); //once done processing latest trade data, send next price update.
     }).catch(err=>{console.log(err);});
@@ -135,12 +135,12 @@ core.storeLocalMomentums = (pair, momentums)=>{
   if(!curMomentums[pair]){
     curMomentums[pair] = {};
   }
-  
+
   momentums.forEach(momentum=>{
     if(!curMomentums[pair][momentum.averagePeriod.toString()]){
       curMomentums[pair][momentum.averagePeriod.toString()] = {};
     }
-    
+
     curMomentums[pair][momentum.averagePeriod.toString()][momentum.momentumPeriod] = [momentum.timestamp, momentum.momentum];
   });
 };

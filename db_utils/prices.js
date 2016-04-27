@@ -4,7 +4,7 @@
 Database Price Utilities
 
 These are a collection of functions used to store and retrieve
-tick data from mondodb.  
+tick data from mondodb.
 */
 var priceUtils = exports;
 

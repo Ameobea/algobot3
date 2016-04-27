@@ -4,7 +4,7 @@
 Momentum Calculator
 
 Calculates the average rate of change between two different
-points of a moving average.  
+points of a moving average.
 */
 var conf = require("../conf/conf");
 
@@ -89,7 +89,7 @@ momentum.calc = (pair, startTime, endTime, averagePeriod, db, callback, smasDb)=
       }
       return elem.timestamp <= startTime;
     });
-    
+
     if(lastAverage && filteredDb.length > 0){
       var firstAverage = filteredDb[filteredDb.length-1];
 
@@ -99,7 +99,7 @@ momentum.calc = (pair, startTime, endTime, averagePeriod, db, callback, smasDb)=
     }else{
       callback(false);
     }
-  }    
+  }
 };
 
 momentum.store = (pair, averagePeriod, momentumPeriod, timestamp, momentumValue, db, callback)=>{

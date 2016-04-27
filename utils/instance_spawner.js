@@ -97,6 +97,5 @@ spawner.getInstances = ()=>{
   });
 };
 
-
 //What used to be here is what happens you you get 4 hours of sleep
 //and then code until 2AM on a Tuseday night.

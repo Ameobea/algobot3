@@ -2,7 +2,7 @@
 Simulated Broker
 
 This module simulates a broker by simulating all trade executions/alterations and keeping the status
-of those trades recorded internally.  
+of those trades recorded internally.
 */
 var broker = exports;
 
@@ -12,7 +12,6 @@ broker.createMarketOrder = (pair, direction)=>{
     //TODO: Account for broker slippage
     fulfill();
   });
-  
 }
 
 broker.createLimitOrder = (pair, size, direction)=>{

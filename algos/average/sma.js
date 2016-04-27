@@ -75,7 +75,7 @@ sma.rawCalc = (prices, startTime, endTime, accurate, callback)=>{
       }
     }else{
       callback((((prices[1].timestamp - startTime)*prices[0].price)+((endTime - prices[1].timestamp)*prices[1].price))/(endTime-startTime)); //only one tick returned in the range + one previous tick
-    } 
+    }
   }else{
     if(prices.length === 0){
       callback(false); // No prices in range or before range
