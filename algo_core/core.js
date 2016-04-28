@@ -59,7 +59,7 @@ core.start = ()=>{
       var calced = [];
       new Promise((fulfill, reject)=>{
         core.calcAverages(priceUpdate, toAverage, db, (average, averagePeriod)=>{
-          maCross.calc(pair, curAverages, averagePeriod, average, timestamp, false, (newCrosses, crossStatuses)=>{
+          maCross.calc(pair, curAverages, averagePeriod, average, timestamp, db, (newCrosses, crossStatuses)=>{
             core.storeLocalAverages(pair, averagePeriod, timestamp, average);
 
             calced.push({period: averagePeriod, average: average});

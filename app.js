@@ -33,6 +33,7 @@ Arguments:
 --nomanager | start without manager server (default false)
 --onlymanager -m | start only the manager server. (default false)
 --listen/-l AUDUSD,USDCAD,EURUSD | only listen for updates to the following list of pairs. (default all pairs)
+--help/-h | displays arguments
 */
 
 var startManager = ()=>{
@@ -45,6 +46,16 @@ var startManager = ()=>{
     manager.start(port);
   }
 };
+
+if(argv.help || argv.h){
+  console.log("node app.js --port 1000 --nomanager/--onlymanager --listen AUDUSD,USDCAD");
+  process.exit(0);
+}
+
+if(conf.public.dumpDbOnStart){
+  backtest.clearFlags(()=>{});
+  dbUtils.flush(()=>{});
+}
 
 if(argv.onlymanager || argv.m){
   console.log("Starting only manager.");
@@ -86,11 +97,6 @@ if(argv.onlymanager || argv.m){
       dbUtils.mongoConnect(db=>{
         ledger.init(conf.public.startingBalance, db);
       });
-    }
-
-    if(conf.public.dumpDbOnStart){
-      backtest.clearFlags(()=>{});
-      dbUtils.flush(()=>{});
     }
   });
 };

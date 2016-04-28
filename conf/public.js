@@ -79,7 +79,7 @@ publicConfig.startingBalance = 32400;
 publicConfig.broker = "simulated";
 
 //normal, precalc, nostore
-publicConfig.backtestType = "nostore";
+publicConfig.backtestType = "normal";
 
 //when tick storage is off, use this for opening positions during backtesting.
 publicConfig.estimatedSpread = .0003;

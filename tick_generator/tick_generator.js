@@ -42,7 +42,7 @@ tickGenerator.listen = (pairs, id)=>{
       if(channel == "ticks"){
         tick = JSON.parse(message);
 
-        if(pairs == "ALL" || (pairs && pairs.indexOf(tick.pair) != -1)){
+        if(pairs == "ALL" || (pairs && pairs.indexOf(tick.pair.toLowerCase()) != -1)){
           tickGenerator.processTick(tick, db);
         }
       }else if(channel == "instanceCommands"){

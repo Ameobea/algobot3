@@ -342,6 +342,7 @@ backtest.stop = pair=>{
   //TODO: by-backtest stopping
   dbUtil.mongoConnect(db=>{
     db.collection("backtestFlags").drop((err, res)=>{
+      console.log("stopping backtest with pair " + pair);
       db.close();
     });
   });
