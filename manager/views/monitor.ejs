@@ -4,15 +4,18 @@
 <script type="text/javascript" src="http://code.jquery.com/jquery-1.10.1.js"></script>
 <script src="https://code.highcharts.com/highcharts.js"></script>
 <script src="../sources/monitor_script.js"></script>
-<link rel="stylesheet" href="sources/monitor.css">
+<link rel="stylesheet" href="sources/monitor_css.css">
 </head>
 <body>
+<% include ./partials/header %>
 <h1><center>Algobot Monitoring Interface</center></h1>
 <div id="mainGraph" style="width: 100%; height: 475px; margin: 0 auto"></div>
 <div id="momentumGraph" style="width: 100%; height: 350px; margin: 0 auto"></div>
 <div id="smaDistGraph" style="width: 100%; height: 350px; margin: 0 auto"></div>
 <div id="config">
   <h2>Chart Config</h2>
+  <p>Monitored Average Periods:  <%= conf.public.monitoredAveragePeriods %></p>
+  <p>Monitored Momentum Periods: <%= conf.public.monitoredMomentumPeriods %></p>
   <p>Note: For momentum pair, enter it in the format [averagePeriod],[momentumPeriod].</p>
   <table>
   <tr>

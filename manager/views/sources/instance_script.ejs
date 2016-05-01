@@ -25,7 +25,6 @@ $(document).ready(()=>{
       var requestAddress = serverAddress + "api/backtest/start/precalced/" + $("#backtestStartPair").val();
       $.post(requestAddress, {startTime: $("#backtestStartTime").val(), endTime: $("#backtestEndTime").val()});
     }else if(type == "no-store"){
-      console.log("pl");
       var requestAddress = serverAddress + "api/backtest/start/nostore/" + $("#backtestStartPair").val();
       $.post(requestAddress, {startTime: $("#backtestStartTime").val()});
     }
@@ -62,9 +61,54 @@ $(document).ready(()=>{
     $.get("api/utils/dbRestore/" + restoreId);
   });
 
-  //load data
   loadInstances();
+  loadConfig();
 });
+
+function decodeEntities(input){
+  var y = document.createElement('textarea');
+  y.innerHTML = input;
+  return y.value;
+}
+
+var loadConfig = ()=>{
+  <%
+    var confString = "<table>";
+
+    for(var key in conf.public){
+      if(!conf.public.hasOwnProperty(key)) continue;
+
+      confString += `<tr><td><b>${key}</b>: ${conf.public[key]}</td>`;
+      confString += `<td><input type="text" id="confInput-${key}"><input type="button" class="confSubmit" id="confSubmit-${key}" value="Update"></td>`;
+    }
+
+    confString += "</table>";
+  %>
+
+  $("#config").html(decodeEntities(`<%= confString %>`));
+
+  setupConfListeners();
+}
+
+var setupConfListeners = ()=>{
+  $(".confSubmit").click(function(){
+    var id = this.attributes.getNamedItem("id").value.split("-")[1];
+    var val = $(`#confInput-${id}`).val();
+
+    $.get(`./api/conf/set/${id}/${val}`, data=>{
+      $("#configStatus").html(`<p>${data}</p>`);
+      reloadConfig();
+    });
+  });
+}
+
+var reloadConfig = ()=>{
+  $.get("./api/conf/get", data=>{
+    $("#config").html(decodeEntities(data));
+
+    setupConfListeners();
+  });
+}
 
 var loadInstances = ()=>{
   update();

@@ -51,8 +51,8 @@ publicConfig.storeRawTicks = true;
 //which average/momentum periods are calculated by the bot and monitored for crosses
 // publicConfig.monitoredAveragePeriods = [30,60,120,300,1000,3000,5000,10000];
 // publicConfig.monitoredMomentumPeriods = [15,30,60,120,300,600,1000,3000,5000];
-publicConfig.monitoredAveragePeriods = [30,5000];
-publicConfig.monitoredMomentumPeriods = [5000];
+publicConfig.monitoredAveragePeriods = [30,1000,5000];
+publicConfig.monitoredMomentumPeriods = [5000,3000];
 
 //set these to true to enable calculations to be sent through redis pusub
 publicConfig.pubTicks = false;

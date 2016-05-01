@@ -112,6 +112,30 @@ router.get("/instances/spawn/:type/:data", (req, res, next)=>{
   }
 });
 
+router.get("/conf/set/:name/:value/", (req, res, next)=>{
+  try{
+    conf.public[req.params.name] = eval(`${req.params.value}`);
+    res.send("Config successfully updated.");
+  }catch(e){
+    res.send("Illegal entry recieved.  Make sure that you follow the guidlines in the usage section.  ");
+  }
+});
+
+router.get("/conf/get", (req, res, next)=>{
+  var confString = "<table>";
+
+  for(var key in conf.public){
+    if(!conf.public.hasOwnProperty(key)) continue;
+
+    confString += `<tr><td><b>${key}</b>: ${conf.public[key]}</td>`;
+    confString += `<td><input type="text" id="confInput-${key}"><input type="button" class="confSubmit" id="confSubmit-${key}" value="Update"></td>`;
+  }
+
+  confString += "</table>";
+
+  res.send(confString);
+})
+
 router.get("/ping", (req, res, next)=>{
   res.send("pong");
 });
