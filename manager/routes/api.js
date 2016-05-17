@@ -117,7 +117,7 @@ router.get("/conf/set/:name/:value/", (req, res, next)=>{
     conf.public[req.params.name] = eval(`${req.params.value}`);
     res.send("Config successfully updated.");
   }catch(e){
-    res.send("Illegal entry recieved.  Make sure that you follow the guidlines in the usage section.  ");
+    res.send("Illegal entry recieved.  Make sure that you follow the guidelines in the usage section.");
   }
 });
 
@@ -129,6 +129,7 @@ router.get("/conf/get", (req, res, next)=>{
 
     confString += `<tr><td><b>${key}</b>: ${conf.public[key]}</td>`;
     confString += `<td><input type="text" id="confInput-${key}"><input type="button" class="confSubmit" id="confSubmit-${key}" value="Update"></td>`;
+    confString += `<td>${conf.desc.pub[key]}</td>`
   }
 
   confString += "</table>";
