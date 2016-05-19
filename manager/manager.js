@@ -1,12 +1,12 @@
 "use strict";
 /*jslint node: true */
 
-var express = require('express');
+var express = require("express");
 var path = require("path");
-var bodyParser = require('body-parser');
+var bodyParser = require("body-parser");
 var http = require("http");
-// var ws = require('nodejs-websocket');
-// var redis = require("redis");
+var ws = require("nodejs-websocket");
+var redis = require("redis");
 
 var conf = require("../conf/conf");
 var dbUtils = require("../db_utils/utils");
@@ -30,7 +30,29 @@ manager.start = function(port){
   app.use('/', index);
   app.use("/api", api);
 
-  //TODO: Remove all of those random redis publishes for calculations
+  var socketServer = ws.createServer(function(conn){
+    socketServer.on('error', function(err){
+      console.log(`Websocket server had some sort of error: ${err}`);
+    });
+
+    conn.on('text', function(input){ //broadcast to all
+      socketServer.connections.forEach(function(connection){
+        connection.sendText(input);
+      });
+    });
+
+    conn.on('close',function(code,reason){
+      console.log('Websocket connection closed');
+    });
+  }).listen(parseInt(conf.private.websocketPort));
+
+  var redisClient = redis.createClient();
+  redisClient.subscribe("tickParserOutput");
+  redisClient.on("message", (channel, message)=>{
+    socketServer.connections.forEach(conn=>{
+      conn.sendText(JSON.stringify({channel: channel, data: message}));
+    });
+  });
 
   dbUtils.mongoConnect(db=>{
     var collection = db.collection("instances");
@@ -45,7 +67,7 @@ manager.start = function(port){
           if(doc.port != port){ // we'd be crashed already if one was running on our port.
             toPing.push(pingManager(conf.private.managerIp, doc.port));
           }else{
-            var toDelete = [collection.deleteOne({port: doc.port})]; // delete ones that are left over
+            collection.deleteOne({port: doc.port}); // delete ones that are left over
           }
         });
 
@@ -68,7 +90,7 @@ manager.start = function(port){
 
           Promise.all(toDelete + [collection.insertOne(doc)]).then(()=>{
             //db.close(); screw this it's not worth my effort.
-          }, err=>{console.log(err);})
+          }, err=>{console.log(err);});
         });
       }else{
         collection.insertOne({type: "manager", port: port}).then(()=>{

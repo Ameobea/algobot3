@@ -98,7 +98,7 @@ tickGenerator.calcPeriodAverage = (ticks, curTime, redisClient, db, callback)=>{
         if(conf.public.backtestType != "nostore"){
           redisClient.publish("prices", JSON.stringify(publishObject));
         }else{
-          console.log("Sending tick to core manually");
+          //console.log("Sending tick to core manually");
           nostoreCore.processUpdate(publishObject, db).then(()=>{
             backtest.nostoreNext();
           }, ()=>{ //didn't process fully

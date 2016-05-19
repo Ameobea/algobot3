@@ -29,7 +29,7 @@ publicConfig.fastBacktestCheckInterval = 1000;
 publicConfig.liveBacktestCheckInterval = 15;
 
 /* Determines if an additional database query is made every time a moving average
-is calculated to get the tick that came before a matched set of ticks. 
+is calculated to get the tick that came before a matched set of ticks.
 
 TODO: Replace with a threshold that sets this value depending on the
 resolution of the average being calculated. */

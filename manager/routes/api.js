@@ -107,7 +107,7 @@ router.get("/instances/kill/:type/:data", (req, res, next)=>{
 router.get("/instances/spawn/:type/:data", (req, res, next)=>{
   if(req.params.type == "tickParser"){
     spawner.spawnTickParser(req.params.data).then(result=>{
-      res.send(JSON.stringify(result)); //TODO: Debug this
+      res.send(JSON.stringify(result));
     });
   }
 });

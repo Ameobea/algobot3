@@ -6,6 +6,7 @@ This script creates new tick processor instances for the bot.
 */
 var child_process = require("child_process");
 var redis = require("redis");
+var uuid64 = require("uuid64");
 
 var dbUtils = require("../db_utils/utils");
 var conf = require("../conf/conf");
@@ -14,12 +15,25 @@ var spawner = exports;
 
 spawner.spawnTickParser = pairs=>{
   return new Promise((f,r)=>{
-    var listenString = "";
+    var uuid = uuid64();
+    var inst = child_process.spawn("node", ["app.js", "--nomanager", "--listen", pairs, "--uuid", uuid], {cwd: conf.private.appRoot});
+    var client = redis.createClient();
 
-    var inst = child_process.spawn("node", ["app.js", "--nomanager", `--listen`, pairs], {cwd: conf.private.appRoot});
-
+    var isFirst = true;
     inst.stdout.on("data", data=>{
-      f(data.toString());
+      if(isFirst){
+        f({id: uuid, data: data.toString()});
+      }
+      isFirst = false;
+      client.publish("tickParserOutput", JSON.stringify({id: uuid, data: data.toString()}));
+    });
+
+    inst.stderr.on("data", data=>{
+      if(isFirst){
+        r({id: uuid, data: data.toString()});
+      }
+      isFirst = false;
+      client.publish("tickParserOutput", JSON.stringify({id: uuid, data: data.toString()}));
     });
   });
 };
@@ -35,7 +49,7 @@ spawner.checkRunning = ()=>{
     sub.on("subscribe", ()=>{
       pub.publish("instanceCommands", JSON.stringify({command: "ping"}));
 
-      var alive = []
+      var alive = [];
       sub.on("message", (channel, message)=>{
         var parsed = JSON.parse(message);
 
@@ -46,7 +60,7 @@ spawner.checkRunning = ()=>{
 
       setTimeout(()=>{
         f(alive);
-      }, 1000)
+      }, 1000);
     });
   });
 };

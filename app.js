@@ -52,7 +52,7 @@ if(argv.help || argv.h){
   process.exit(0);
 }
 
-if(conf.public.dumpDbOnStart){
+if(conf.public.dumpDbOnStart && argv.onlymanager){
   backtest.clearFlags(()=>{});
   dbUtils.flush(()=>{});
 }
@@ -86,9 +86,9 @@ if(argv.onlymanager || argv.m){
 
       console.log(pairs);
 
-      tickGenerator.listen(pairs);
+      tickGenerator.listen(pairs, argv.uuid);
     }else{
-      tickGenerator.listen("ALL");
+      tickGenerator.listen("ALL", argv.uuid);
     }
 
     core.start();
