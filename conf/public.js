@@ -20,8 +20,8 @@ publicConfig.dumpDbOnStart = true;
 publicConfig.managerServerIP = "new.ameobea.me";
 publicConfig.managerServerPort = 3002;
 
-publicConfig.tickDataDirectory = "/var/algobot3/tick_data/";
-publicConfig.dbDumpDir = "/var/algobot3/db_dumps/";
+publicConfig.tickDataDirectory = "/root/algobot3/tick_data/";
+publicConfig.dbDumpDir = "/root/algobot3/db_dumps/";
 
 /* After this number of backtest iterations, a request will be made to the database to
 verify that the backtest has not been cancelled. */

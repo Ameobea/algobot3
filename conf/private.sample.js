@@ -7,7 +7,7 @@ bot is being run.  They include things such as server ips, passwords, and other
 sensitive information that should not be committed.
 */
 
-var private = exports;
+var privateConfig = exports;
 
 privateConfig.mongodbIP = "mongodb://localhost:27017";
 privateConfig.mongodbDatabase = "bot3";
