@@ -1,5 +1,17 @@
 # Algobot 3
 
+## **Important Note**
+This is version 3 of my algorithmic trading platform, the second of which is written primarily in NodeJS.  It is **not** in a working condition and was a sort of prototype for future revisions of the algobot platform.
+
+Future revisions of the platform are listed below:
+
+1. [algobot 1](https://github.com/Ameobea/algobot)
+2. [Algobot-elixir](https://github.com/Ameobea/algobot_elixir)
+3. bot3 (this repository)
+4. [bot4/Rustbot](https://github.com/Ameobea/bot4)
+
+----
+
 ## Overview
 Algobot 3 is an algorithmic trading bot that attempts to turn a profit by evaluating market conditions in FX markets and placing trades based on calculations.
 
